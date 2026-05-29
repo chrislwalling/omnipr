@@ -80,7 +80,13 @@ export default function NewsTab({ onWritePitch }: Props) {
         throw new Error(b.error ?? `Scoring failed (${scoreRes.status})`);
       }
       const { scored, counts, validationNote: note } = await scoreRes.json();
-      setValidationNote(note || null);
+      const canonical = scored.filter(a => a.isCanonical);
+      const visible = canonical.filter(a => a.scoreTier !== 'Discard');
+      const debugMsg = `Scored: ${scored.length} total, ${canonical.length} canonical, ${visible.length} visible (High: ${counts.high}, Medium: ${counts.medium}, Low: ${counts.low})`;
+      console.log(debugMsg);
+
+      const noteText = note ? `${note} — ${debugMsg}` : debugMsg;
+      setValidationNote(noteText);
       setProgress(90);
 
       // Fire Slack (non-blocking)
