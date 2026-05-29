@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vercel dev",
     "vite": "vite",
-    "build": "vite build",
+    "build": "tsc --project tsconfig.api.json && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
