@@ -81,9 +81,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       rawRows = XLSX.utils.sheet_to_json<Record<string, string>>(sheet, { defval: '' });
     } else {
       const workbook = XLSX.read(fileBuffer, { type: 'buffer', cellFormula: true });
+
+      // Prefer "Articles" sheet if it exists, otherwise pick the largest sheet
       let bestSheet = workbook.SheetNames[0];
-      for (const name of workbook.SheetNames) {
-        if (Object.keys(workbook.Sheets[name] || {}).length > 5) { bestSheet = name; break; }
+      if (workbook.SheetNames.includes('Articles')) {
+        bestSheet = 'Articles';
+      } else {
+        let maxCells = 0;
+        for (const name of workbook.SheetNames) {
+          const cellCount = Object.keys(workbook.Sheets[name] || {}).length;
+          if (cellCount > maxCells) {
+            maxCells = cellCount;
+            bestSheet = name;
+          }
+        }
       }
       rawRows = XLSX.utils.sheet_to_json<Record<string, string>>(workbook.Sheets[bestSheet], { defval: '', raw: false });
     }
