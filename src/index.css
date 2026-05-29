@@ -1,62 +1,66 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --navy: #1B2F52;
-  --gold: #C9A84C;
-  --gold-hover: #B8974A;
-  --cream: #F8F5F0;
-  --taupe: #E8E0D4;
-  --muted: #8A9BB0;
-  --font-serif: Georgia, serif;
+  --omni-navy: #003E52;
+  --omni-navy-dark: #002535;
+  --omni-navy-light: #005670;
+  --omni-gold: #C8A45A;
+  --omni-gold-light: #E8D5A3;
+  --omni-black: #000000;
+  --omni-white: #FFFFFF;
+  --font-heading: 'Playfair Display', Georgia, serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 * { box-sizing: border-box; }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-body);
   font-size: 16px;
-  color: var(--navy);
-  background-color: var(--cream);
+  color: var(--omni-black);
+  background-color: var(--omni-white);
 }
 
-h1 { font-family: var(--font-serif); font-size: 32px; font-weight: 700; }
-h2 { font-family: var(--font-serif); font-size: 24px; font-weight: 700; }
-h3 { font-family: var(--font-serif); font-size: 20px; font-weight: 700; }
+h1 { font-family: var(--font-heading); font-size: 32px; font-weight: 700; color: var(--omni-navy); }
+h2 { font-family: var(--font-heading); font-size: 24px; font-weight: 700; color: var(--omni-navy); }
+h3 { font-family: var(--font-heading); font-size: 20px; font-weight: 700; color: var(--omni-navy); }
 
 /* Dashboard tables */
 .dash-table { @apply w-full border-collapse text-sm; }
-.dash-table thead tr { background-color: var(--navy); }
+.dash-table thead tr { background-color: var(--omni-navy); }
 .dash-table thead th {
-  color: var(--gold);
+  color: var(--omni-gold);
   @apply px-3 py-2 text-left text-xs font-semibold;
-  border-bottom: 2px solid var(--gold);
+  border-bottom: 2px solid var(--omni-gold);
 }
-.dash-table tbody tr { @apply border-b; border-color: var(--taupe); }
-.dash-table tbody tr:nth-child(even) { background-color: var(--cream); }
-.dash-table tbody tr:nth-child(odd) { background-color: #fff; }
-.dash-table tbody tr:hover { background-color: rgba(201,168,76,0.05); }
-.dash-table tbody td { @apply px-3 py-2; color: var(--navy); }
+.dash-table tbody tr { @apply border-b; border-color: #E5E7EB; }
+.dash-table tbody tr:nth-child(even) { background-color: #F9FAFB; }
+.dash-table tbody tr:nth-child(odd) { background-color: var(--omni-white); }
+.dash-table tbody tr:hover { background-color: rgba(200, 164, 90, 0.05); }
+.dash-table tbody td { @apply px-3 py-2; color: var(--omni-black); }
 
 /* Buttons */
 .btn-primary {
   @apply px-4 py-2 rounded font-semibold text-sm transition-colors;
-  background-color: var(--gold);
-  color: var(--navy);
+  background-color: var(--omni-gold);
+  color: var(--omni-navy);
 }
-.btn-primary:hover { background-color: var(--gold-hover); }
+.btn-primary:hover { background-color: #B8934A; }
 .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .btn-secondary {
   @apply border px-4 py-2 rounded font-semibold text-sm transition-colors bg-white;
-  border-color: var(--navy);
-  color: var(--navy);
+  border-color: var(--omni-navy);
+  color: var(--omni-navy);
 }
-.btn-secondary:hover { background-color: var(--navy); color: #fff; }
+.btn-secondary:hover { background-color: var(--omni-navy); color: var(--omni-white); }
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: var(--cream); }
-::-webkit-scrollbar-thumb { background: var(--taupe); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+::-webkit-scrollbar-track { background: #F9FAFB; }
+::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #9CA3AF; }

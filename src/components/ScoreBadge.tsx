@@ -1,10 +1,10 @@
 import type { ScoreTier } from '../types';
 
 const STYLES: Record<ScoreTier, { bg: string; color: string }> = {
-  High: { bg: '#C9A84C', color: '#1B2F52' },
-  Medium: { bg: '#1B2F52', color: '#C9A84C' },
-  Low: { bg: '#8A9BB0', color: '#fff' },
-  Discard: { bg: '#e2e8f0', color: '#64748b' },
+  High: { bg: '#C8A45A', color: '#003E52' },
+  Medium: { bg: '#003E52', color: '#C8A45A' },
+  Low: { bg: '#6B7280', color: '#ffffff' },
+  Discard: { bg: '#F3F4F6', color: '#6B7280' },
 };
 
 export default function ScoreBadge({ tier }: { tier: ScoreTier }) {

@@ -1,6 +1,7 @@
 import { Newspaper, Users, PenLine, ClipboardList } from 'lucide-react';
 import type { TabId } from '../App';
 import SystemStatus from './SystemStatus';
+import OmniLogo from './OmniLogo';
 
 const NAV_ITEMS: { id: TabId; label: string; Icon: React.FC<{ size: number }> }[] = [
   { id: 'news', label: 'News', Icon: Newspaper },
@@ -20,31 +21,24 @@ export default function Sidebar({ activeTab, onTabChange }: Props) {
       className="flex flex-col h-screen fixed left-0 top-0 z-40"
       style={{
         width: '220px',
-        backgroundColor: '#1B2F52',
-        borderRight: '1px solid rgba(201,168,76,0.15)',
+        backgroundColor: '#003E52',
+        borderRight: '1px solid rgba(200,164,90,0.15)',
       }}
     >
       {/* Logo */}
       <div
         className="flex flex-col items-center justify-center px-4 py-6"
-        style={{ borderBottom: '1px solid rgba(201,168,76,0.15)', minHeight: '100px' }}
+        style={{ borderBottom: '1px solid rgba(200,164,90,0.15)', minHeight: '100px' }}
       >
-        <div
-          className="text-xs font-semibold tracking-widest uppercase mb-1"
-          style={{ color: '#C9A84C', letterSpacing: '0.2em' }}
-        >
-          Omni Hotels
+        <div className="w-24 mb-3">
+          <OmniLogo />
         </div>
         <div
-          className="text-sm font-medium"
-          style={{ color: 'rgba(255,255,255,0.7)' }}
+          className="text-xs font-semibold tracking-widest uppercase"
+          style={{ color: 'rgba(255,255,255,0.6)', letterSpacing: '0.15em', fontSize: '10px' }}
         >
           PR Dashboard
         </div>
-        <div
-          className="mt-2 w-8 border-t"
-          style={{ borderColor: 'rgba(201,168,76,0.4)' }}
-        />
       </div>
 
       {/* Navigation */}
@@ -57,13 +51,13 @@ export default function Sidebar({ activeTab, onTabChange }: Props) {
               onClick={() => onTabChange(id)}
               className="flex items-center w-full px-4 py-3 text-sm font-medium transition-colors relative"
               style={{
-                color: active ? '#C9A84C' : '#94a3b8',
-                backgroundColor: active ? 'rgba(201,168,76,0.08)' : 'transparent',
-                borderLeft: active ? '3px solid #C9A84C' : '3px solid transparent',
+                color: active ? '#C8A45A' : 'rgba(255,255,255,0.6)',
+                backgroundColor: active ? 'rgba(200,164,90,0.12)' : 'transparent',
+                borderLeft: active ? '3px solid #C8A45A' : '3px solid transparent',
                 cursor: 'pointer',
               }}
               onMouseEnter={e => {
-                if (!active) (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(201,168,76,0.1)';
+                if (!active) (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(200,164,90,0.1)';
               }}
               onMouseLeave={e => {
                 if (!active) (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
@@ -79,7 +73,7 @@ export default function Sidebar({ activeTab, onTabChange }: Props) {
       {/* System Status */}
       <div
         className="px-4 py-4"
-        style={{ borderTop: '1px solid rgba(201,168,76,0.15)' }}
+        style={{ borderTop: '1px solid rgba(200,164,90,0.15)' }}
       >
         <SystemStatus />
       </div>
