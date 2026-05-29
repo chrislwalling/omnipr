@@ -151,31 +151,50 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     let scored: ScoredArticle[] = [];
     try {
-      const jsonMatch = result.content.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        scored = parsed.map((item: Record<string, unknown>, i: number) => {
-          const src = articles[i] || articles[0];
-          const authorName = String(item.author || src.author || '').toLowerCase();
-          return {
-            headline: String(item.headline || src.headline),
-            url: String(item.url || src.url),
-            outlet: String(item.outlet || src.outlet),
-            author: String(item.author || src.author),
-            publishDate: String(item.publishDate || src.publishDate),
-            uvm: String(item.uvm || src.uvm),
-            scoreTier: (item.scoreTier as ScoredArticle['scoreTier']) || 'Low',
-            articleType: String(item.articleType || ''),
-            competitorProperty: String(item.competitorProperty || ''),
-            scoringExplanation: String(item.scoringExplanation || ''),
-            pitchAngle: String(item.pitchAngle || ''),
-            syndicationCount: Number(item.syndicationCount) || 0,
-            knownContact: mediaNames.has(authorName),
-            isCanonical: item.isCanonical !== false,
-          } satisfies ScoredArticle;
-        });
+      let jsonStr: string | null = null;
+      const firstBracket = result.content.indexOf('[');
+      const lastBracket = result.content.lastIndexOf(']');
+
+      if (firstBracket >= 0 && lastBracket > firstBracket) {
+        jsonStr = result.content.substring(firstBracket, lastBracket + 1);
       }
-    } catch {
+
+      if (!jsonStr) {
+        throw new Error(`No JSON array found in response`);
+      }
+
+      const parsed = JSON.parse(jsonStr);
+      if (!Array.isArray(parsed) || parsed.length === 0) {
+        throw new Error(`Response is not a non-empty array: ${parsed}`);
+      }
+
+      scored = parsed.map((item: Record<string, unknown>) => {
+        const authorName = String(item.author || '').toLowerCase();
+        const scoreTier = item.scoreTier as ScoredArticle['scoreTier'] | undefined;
+        const validTiers = ['High', 'Medium', 'Low', 'Discard'];
+        if (!validTiers.includes(scoreTier || '')) {
+          console.warn(`Invalid scoreTier "${scoreTier}", defaulting to Low`);
+        }
+        return {
+          headline: String(item.headline || ''),
+          url: String(item.url || ''),
+          outlet: String(item.outlet || ''),
+          author: String(item.author || ''),
+          publishDate: String(item.publishDate || ''),
+          uvm: String(item.uvm || ''),
+          scoreTier: validTiers.includes(scoreTier || '') ? (scoreTier as ScoredArticle['scoreTier']) : 'Low',
+          articleType: String(item.articleType || ''),
+          competitorProperty: String(item.competitorProperty || ''),
+          scoringExplanation: String(item.scoringExplanation || ''),
+          pitchAngle: String(item.pitchAngle || ''),
+          syndicationCount: Number(item.syndicationCount) || 0,
+          knownContact: mediaNames.has(authorName),
+          isCanonical: item.isCanonical !== false,
+        } satisfies ScoredArticle;
+      });
+    } catch (e) {
+      console.error('Scoring parse error:', (e as Error).message);
+      console.error('Claude response preview:', result.content.slice(0, 500));
       scored = articles.map(a => ({
         ...a,
         scoreTier: 'Low' as const,
