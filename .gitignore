@@ -8,3 +8,5 @@ api/**/*.js
 api/**/*.js.map
 lib/**/*.js
 lib/**/*.js.map
+src/**/*.js
+src/**/*.js.map
