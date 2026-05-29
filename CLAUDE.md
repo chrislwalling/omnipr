@@ -15,21 +15,21 @@ A PR intelligence dashboard for Omni Hotels & Resorts, built for the Omni Golf C
 
 ```bash
 npm install
-vercel dev        # Runs frontend + API routes together
-# OR
-npm run vite     # Frontend only (API calls will fail without Vercel)
+vercel dev        # Runs frontend + API routes with Vercel environment variables
 ```
+
+**Important:** Always use `vercel dev` for local development. This loads environment variables from your Vercel project, so you don't need a `.env.local` file.
 
 ## Environment Variables
 
-Copy `.env.example` to `.env.local` and fill in:
+Set these in Vercel project settings (not in `.env.local`):
 
 | Variable | Description |
 |---|---|
 | `ANTHROPIC_API_KEY` | Claude API key |
 | `GOOGLE_SHEETS_CREDENTIALS` | Base64-encoded service account JSON |
-| `OMNI_SHEET_ID` | Google Sheet ID (already set in .env.example) |
-| `SLACK_WEBHOOK_URL` | Slack Incoming Webhook URL (add after setup) |
+| `OMNI_SHEET_ID` | Google Sheet ID |
+| `SLACK_WEBHOOK_URL` | Slack Incoming Webhook URL |
 
 ## One-Time Setup
 
