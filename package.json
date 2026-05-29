@@ -2,11 +2,10 @@
   "name": "omni-pr-dashboard",
   "private": true,
   "version": "0.1.0",
-  "type": "module",
   "scripts": {
     "dev": "vercel dev",
     "vite": "vite",
-    "build": "vite build",
+    "build": "tsc --project tsconfig.api.json && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
