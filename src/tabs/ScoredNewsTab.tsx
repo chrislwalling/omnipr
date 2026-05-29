@@ -16,6 +16,7 @@ interface Props {
 export default function ScoredNewsTab({ articles, validationNote, onWritePitch, onNewScoring }: Props) {
   const [sortField, setSortField] = useState<SortField>('scoreTier');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedScoreTiers, setSelectedScoreTiers] = useState<Set<ScoreTier>>(new Set(['High', 'Medium', 'Low']));
   const [correctionOpen, setCorrectionOpen] = useState<number | null>(null);
   const [correctionScore, setCorrectionScore] = useState<ScoreTier>('Medium');
   const [correctionReason, setCorrectionReason] = useState('');
@@ -24,13 +25,14 @@ export default function ScoredNewsTab({ articles, validationNote, onWritePitch, 
   const displayed = useMemo(() => {
     let filtered = articles.filter(a => a.scoreTier !== 'Discard' && a.isCanonical);
 
+    filtered = filtered.filter(a => selectedScoreTiers.has(a.scoreTier));
+
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       filtered = filtered.filter(a =>
         a.headline.toLowerCase().includes(q) ||
         a.outlet.toLowerCase().includes(q) ||
-        a.author.toLowerCase().includes(q) ||
-        a.url.toLowerCase().includes(q)
+        a.author.toLowerCase().includes(q)
       );
     }
 
@@ -38,7 +40,7 @@ export default function ScoredNewsTab({ articles, validationNote, onWritePitch, 
       if (sortField === 'scoreTier') return TIER_ORDER[a.scoreTier] - TIER_ORDER[b.scoreTier];
       return (b.publishDate || '').localeCompare(a.publishDate || '');
     });
-  }, [articles, sortField, searchQuery]);
+  }, [articles, sortField, searchQuery, selectedScoreTiers]);
 
   const discardCount = articles.filter(a => a.scoreTier === 'Discard').length;
 
@@ -126,30 +128,56 @@ export default function ScoredNewsTab({ articles, validationNote, onWritePitch, 
         </div>
       )}
 
-      <div className="mb-6 flex gap-3">
-        <input
-          type="text"
-          placeholder="Search articles, outlets, authors..."
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-          className="flex-1 border rounded-lg px-4 py-2 text-sm"
-          style={{ borderColor: '#E5E7EB', color: '#003E52' }}
-        />
-        <select
-          value={sortField}
-          onChange={e => setSortField(e.target.value as SortField)}
-          className="border rounded-lg px-3 py-2 text-sm"
-          style={{ borderColor: '#E5E7EB', color: '#003E52' }}
-        >
-          <option value="scoreTier">Sort: Score Tier</option>
-          <option value="publishDate">Sort: Publish Date</option>
-        </select>
+      <div className="mb-6 space-y-3">
+        <div className="flex gap-3">
+          <input
+            type="text"
+            placeholder="Search articles, outlets, authors..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="flex-1 border rounded-lg px-4 py-2 text-sm"
+            style={{ borderColor: '#E5E7EB', color: '#003E52' }}
+          />
+          <select
+            value={sortField}
+            onChange={e => setSortField(e.target.value as SortField)}
+            className="border rounded-lg px-3 py-2 text-sm"
+            style={{ borderColor: '#E5E7EB', color: '#003E52' }}
+          >
+            <option value="scoreTier">Sort: Score Tier</option>
+            <option value="publishDate">Sort: Publish Date</option>
+          </select>
+        </div>
+        <div className="flex gap-2">
+          {(['High', 'Medium', 'Low'] as const).map(tier => (
+            <button
+              key={tier}
+              onClick={() => {
+                const newTiers = new Set(selectedScoreTiers);
+                if (newTiers.has(tier)) {
+                  newTiers.delete(tier);
+                } else {
+                  newTiers.add(tier);
+                }
+                setSelectedScoreTiers(newTiers);
+              }}
+              className="px-3 py-1.5 rounded-lg text-sm font-medium transition-all border"
+              style={{
+                backgroundColor: selectedScoreTiers.has(tier) ? (tier === 'High' ? '#C8A45A' : tier === 'Medium' ? '#003E52' : '#6B7280') : '#ffffff',
+                color: selectedScoreTiers.has(tier) ? '#ffffff' : (tier === 'High' ? '#C8A45A' : tier === 'Medium' ? '#003E52' : '#6B7280'),
+                borderColor: tier === 'High' ? '#C8A45A' : tier === 'Medium' ? '#003E52' : '#6B7280',
+              }}
+            >
+              {tier}
+            </button>
+          ))}
+        </div>
       </div>
 
       {displayed.length === 0 ? (
         <div className="text-center py-12">
           <p style={{ color: '#6B7280' }}>
-            {searchQuery ? 'No articles match your search.' : 'No scored articles yet. Start a new scoring to see results here.'}
+            {searchQuery ? 'No articles match your search.' : selectedScoreTiers.size === 0 ? 'Select a score tier to view articles.' : 'No scored articles yet. Start a new scoring to see results here.'}
           </p>
         </div>
       ) : (
