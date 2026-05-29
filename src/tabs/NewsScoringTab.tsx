@@ -63,7 +63,15 @@ export default function NewsScoringTab({ onScoringComplete }: Props) {
         const b = await scoreRes.json().catch(() => ({}));
         throw new Error(b.error ?? `Scoring failed (${scoreRes.status})`);
       }
-      const { scored, counts, validationNote: note } = await scoreRes.json();
+      const scoreData = await scoreRes.json();
+      if (!scoreData.scored || !Array.isArray(scoreData.scored)) {
+        console.error('Invalid score response:', scoreData);
+        throw new Error('Scoring returned invalid data structure');
+      }
+      const { scored, counts, validationNote: note } = scoreData;
+      if (scored.length === 0) {
+        console.warn('No articles in scoring response. Input articles:', parsed.length);
+      }
       setProgress(90);
 
       // Fire Slack (non-blocking)
