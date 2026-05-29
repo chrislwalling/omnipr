@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { callClaude } from '../lib/claude';
+import { callClaude } from '../lib/claude.js';
 
 const PROPERTIES: Record<string, string> = {
   'PGA Frisco': 'Home of the PGA of America headquarters campus. Two championship courses: Fields Ranch East and West. Pair with Barton Creek for Texas regional pitches. Newest major golf destination in America.',
