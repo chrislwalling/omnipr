@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import Anthropic from '@anthropic-ai/sdk';
-import { getSheetsClient } from '../lib/sheets';
+import { getSheetsClient } from '../lib/sheets.js';
 
 async function checkGoogleSheets() {
   try {

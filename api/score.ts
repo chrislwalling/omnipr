@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { callClaude, today } from '../lib/claude';
-import { readSheetAsObjects, appendToSheet } from '../lib/sheets';
-import type { ArticleInput, ScoredArticle } from '../src/types';
+import { callClaude, today } from '../lib/claude.js';
+import { readSheetAsObjects, appendToSheet } from '../lib/sheets.js';
+import type { ArticleInput, ScoredArticle } from '../src/types.js';
 
 const OMNI_SCORING_PROMPT = `You are scoring golf/travel media articles for PR value to Omni Hotels & Resorts.
 
