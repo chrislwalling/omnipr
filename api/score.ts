@@ -3,6 +3,30 @@ import { callClaude, today } from '../lib/claude.js';
 import { readSheetAsObjects, appendToSheet } from '../lib/sheets.js';
 import type { ArticleInput, ScoredArticle } from '../src/types.js';
 
+async function fetchArticleText(url: string, timeout = 10000): Promise<string | null> {
+  try {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+    const response = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0' },
+      signal: controller.signal,
+    });
+    clearTimeout(id);
+    if (!response.ok) return null;
+    const text = await response.text();
+    // Extract text content, stripping basic HTML tags
+    const stripped = text
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+      .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    return stripped.slice(0, 3000);
+  } catch {
+    return null;
+  }
+}
+
 const OMNI_SCORING_PROMPT = `You are scoring golf/travel media articles for PR value to Omni Hotels & Resorts.
 
 GOVERNING TEST: Before scoring any article, ask: does this article help a PR team pitch an Omni golf resort to a travel or lifestyle journalist? If no, DISCARD immediately.
@@ -165,6 +189,52 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }));
     }
 
+    // Validate HIGH tier articles against actual content
+    const highArticles = scored.filter(a => a.scoreTier === 'High');
+    if (highArticles.length > 0) {
+      const validationTexts = await Promise.all(
+        highArticles.map(async (a) => ({
+          article: a,
+          content: await fetchArticleText(a.url),
+        }))
+      );
+
+      const articlesWithContent = validationTexts
+        .filter(v => v.content)
+        .map((v, i) => `${i + 1}. "${v.article.headline}" (${v.article.outlet})\n${v.article.content}\n---ACTUAL CONTENT---\n${v.content}`)
+        .join('\n\n');
+
+      if (articlesWithContent) {
+        const validationPrompt = `Double-check these HIGH-scored articles against their actual content. For each, confirm if the HIGH tier is correct. If the content does NOT support a HIGH score (e.g., article is actually off-topic, a brief, or lacks Omni golf relevance), note that. Format: article number → "CONFIRM HIGH" or "DOWNGRADE TO [Medium/Low]" with 1-2 sentence reason.
+
+${articlesWithContent}`;
+
+        const validationResult = await callClaude({
+          userPrompt: validationPrompt,
+          contextString: OMNI_SCORING_PROMPT,
+        });
+
+        // Parse validation feedback and apply downgrades (but only if content was fetched)
+        const validationLines = validationResult.content.split('\n').filter(l => l.trim());
+        let validationIndex = 0;
+        for (let i = 0; i < highArticles.length; i++) {
+          const fetchedContent = validationTexts[i].content;
+          if (!fetchedContent) continue; // Skip if we couldn't fetch
+
+          const matchLine = validationLines.find(l => l.trim().startsWith(`${validationIndex + 1}`));
+          if (matchLine?.includes('DOWNGRADE')) {
+            const newTier = matchLine.includes('Medium') ? 'Medium' : matchLine.includes('Low') ? 'Low' : 'High';
+            const originalIdx = scored.findIndex(s => s.url === highArticles[i].url);
+            if (originalIdx >= 0 && newTier !== 'High') {
+              scored[originalIdx].scoreTier = newTier;
+              scored[originalIdx].scoringExplanation += ` [Downgraded after content check]`;
+            }
+          }
+          validationIndex++;
+        }
+      }
+    }
+
     const uploadDate = today();
     try {
       await appendToSheet('Scored Articles Log', scored.map(a => [
@@ -188,7 +258,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       { high: 0, medium: 0, low: 0, discarded: 0 }
     );
 
-    return res.json({ scored, counts });
+    const validationNote = highArticles.length > 0
+      ? `I'm double checking my work on ${highArticles.length} high priority ${highArticles.length === 1 ? 'article' : 'articles'} so you can impress Dan Surrette`
+      : undefined;
+
+    return res.json({ scored, counts, validationNote });
   } catch (e) {
     return res.status(500).json({ error: (e as Error).message });
   }

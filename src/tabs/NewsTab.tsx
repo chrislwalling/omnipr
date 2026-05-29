@@ -32,6 +32,7 @@ export default function NewsTab({ onWritePitch }: Props) {
   const [correctionScore, setCorrectionScore] = useState<ScoreTier>('Medium');
   const [correctionReason, setCorrectionReason] = useState('');
   const [correctionSubmitting, setCorrectionSubmitting] = useState(false);
+  const [validationNote, setValidationNote] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   function handleDrop(e: DragEvent<HTMLDivElement>) {
@@ -77,7 +78,8 @@ export default function NewsTab({ onWritePitch }: Props) {
         const b = await scoreRes.json().catch(() => ({}));
         throw new Error(b.error ?? `Scoring failed (${scoreRes.status})`);
       }
-      const { scored, counts } = await scoreRes.json();
+      const { scored, counts, validationNote: note } = await scoreRes.json();
+      setValidationNote(note || null);
       setProgress(90);
 
       // Fire Slack (non-blocking)
@@ -274,11 +276,23 @@ export default function NewsTab({ onWritePitch }: Props) {
             <option value="publishDate">Publish Date</option>
           </select>
           <button className="btn-secondary text-sm"
-            onClick={() => { setPhase('upload'); setFile(null); setArticles([]); }}>
+            onClick={() => { setPhase('upload'); setFile(null); setArticles([]); setValidationNote(null); }}>
             New Upload
           </button>
         </div>
       </div>
+
+      {validationNote && (
+        <div
+          className="rounded-lg px-4 py-3 mb-6 text-sm flex items-start gap-3"
+          style={{ backgroundColor: 'rgba(200,164,90,0.1)', borderLeft: '3px solid #C8A45A' }}
+        >
+          <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="#C8A45A" strokeWidth={1.5} className="flex-shrink-0 mt-0.5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span style={{ color: '#003E52' }}>{validationNote}</span>
+        </div>
+      )}
 
       <div className="space-y-4">
         {displayed.map((article, idx) => (
