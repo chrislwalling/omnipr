@@ -3,7 +3,8 @@
   "compilerOptions": {
     "noEmit": false,
     "allowImportingTsExtensions": false,
-    "outDir": "./api",
+    "rootDir": ".",
+    "outDir": ".",
     "declaration": false,
     "declarationMap": false,
     "sourceMap": false,
