@@ -1,7 +1,8 @@
 import { useRef, useState, ChangeEvent, DragEvent } from 'react';
+import ScoreBadge from '../components/ScoreBadge';
 import type { ScoredArticle } from '../types';
 
-type Phase = 'upload' | 'analyzing';
+type Phase = 'upload' | 'analyzing' | 'reviewing';
 
 interface Props {
   onScoringComplete: (articles: ScoredArticle[], validationNote: string | null) => void;
@@ -14,6 +15,8 @@ export default function NewsScoringTab({ onScoringComplete }: Props) {
   const [progress, setProgress] = useState(0);
   const [progressLabel, setProgressLabel] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [reviewArticles, setReviewArticles] = useState<ScoredArticle[]>([]);
+  const [reviewValidationNote, setReviewValidationNote] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   function handleDrop(e: DragEvent<HTMLDivElement>) {
@@ -78,12 +81,25 @@ export default function NewsScoringTab({ onScoringComplete }: Props) {
       }).catch(() => {});
 
       setProgress(100);
-      onScoringComplete(scored, note || null);
+      setReviewArticles(scored);
+      setReviewValidationNote(note || null);
+      setPhase('reviewing');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unexpected error');
       setPhase('upload');
       setProgress(0);
     }
+  }
+
+  function handleProceedToScoredNews() {
+    onScoringComplete(reviewArticles, reviewValidationNote);
+  }
+
+  function handleStartNewBatch() {
+    setFile(null);
+    setReviewArticles([]);
+    setReviewValidationNote(null);
+    setPhase('upload');
   }
 
   // ── Phase: Upload ──────────────────────────────────────────────
@@ -147,27 +163,99 @@ export default function NewsScoringTab({ onScoringComplete }: Props) {
   }
 
   // ── Phase: Analyzing ────────────────────────────────────────────
-  return (
-    <div className="p-8 flex flex-col items-center justify-center" style={{ minHeight: '60vh' }}>
-      <div className="max-w-sm w-full text-center space-y-6">
-        <div className="w-12 h-12 rounded-full mx-auto flex items-center justify-center animate-pulse"
-          style={{ backgroundColor: 'rgba(200,164,90,0.2)' }}>
-          <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="#C8A45A" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
-          </svg>
+  if (phase === 'analyzing') {
+    return (
+      <div className="p-8 flex flex-col items-center justify-center" style={{ minHeight: '60vh' }}>
+        <div className="max-w-sm w-full text-center space-y-6">
+          <div className="w-12 h-12 rounded-full mx-auto flex items-center justify-center animate-pulse"
+            style={{ backgroundColor: 'rgba(200,164,90,0.2)' }}>
+            <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="#C8A45A" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-base font-semibold" style={{ color: '#003E52' }}>{progressLabel}</p>
+            <p className="text-sm mt-1" style={{ color: '#6B7280' }}>This may take 20–60 seconds</p>
+          </div>
+          <div className="rounded-full overflow-hidden" style={{ height: '8px', background: '#E5E7EB' }}>
+            <div
+              className="h-full rounded-full transition-all duration-700"
+              style={{ width: `${progress}%`, background: '#C8A45A' }}
+            />
+          </div>
+          <p className="text-xs" style={{ color: '#6B7280' }}>{progress}%</p>
         </div>
-        <div>
-          <p className="text-base font-semibold" style={{ color: '#003E52' }}>{progressLabel}</p>
-          <p className="text-sm mt-1" style={{ color: '#6B7280' }}>This may take 20–60 seconds</p>
-        </div>
-        <div className="rounded-full overflow-hidden" style={{ height: '8px', background: '#E5E7EB' }}>
-          <div
-            className="h-full rounded-full transition-all duration-700"
-            style={{ width: `${progress}%`, background: '#C8A45A' }}
-          />
-        </div>
-        <p className="text-xs" style={{ color: '#6B7280' }}>{progress}%</p>
       </div>
-    </div>
-  );
+    );
+  }
+
+  // ── Phase: Reviewing ────────────────────────────────────────────
+  if (phase === 'reviewing') {
+    const counts = {
+      high: reviewArticles.filter(a => a.scoreTier === 'High').length,
+      medium: reviewArticles.filter(a => a.scoreTier === 'Medium').length,
+      low: reviewArticles.filter(a => a.scoreTier === 'Low').length,
+      discard: reviewArticles.filter(a => a.scoreTier === 'Discard').length,
+    };
+
+    return (
+      <div className="p-8">
+        <div className="max-w-4xl mx-auto">
+          <h2 style={{ color: '#003E52', marginBottom: '0.5rem' }}>Batch Scoring Complete</h2>
+          <p style={{ color: '#6B7280', marginBottom: '1.5rem' }}>Review your scores below, then proceed to the Scored Articles tab or start a new batch.</p>
+
+          {reviewValidationNote && (
+            <div
+              className="rounded-lg px-4 py-3 mb-6 text-sm flex items-start gap-3"
+              style={{ backgroundColor: 'rgba(200,164,90,0.1)', borderLeft: '3px solid #C8A45A' }}
+            >
+              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="#C8A45A" strokeWidth={1.5} className="flex-shrink-0 mt-0.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span style={{ color: '#003E52' }}>{reviewValidationNote}</span>
+            </div>
+          )}
+
+          <div className="mb-6 flex gap-4 text-sm">
+            <span style={{ color: '#C8A45A' }}><strong>{counts.high}</strong> High</span>
+            <span style={{ color: '#003E52' }}><strong>{counts.medium}</strong> Medium</span>
+            <span style={{ color: '#6B7280' }}><strong>{counts.low}</strong> Low</span>
+            {counts.discard > 0 && <span style={{ color: '#94a3b8' }}><strong>{counts.discard}</strong> Discarded</span>}
+          </div>
+
+          <div className="space-y-3 mb-8 max-h-96 overflow-y-auto">
+            {reviewArticles.filter(a => a.scoreTier !== 'Discard' && a.isCanonical).map((article, idx) => (
+              <div key={idx} className="rounded-lg p-4 flex items-start justify-between gap-4" style={{ backgroundColor: '#F9F9F9', border: '1px solid #E5E7EB' }}>
+                <div className="flex-1 min-w-0">
+                  <a
+                    href={article.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-medium text-sm hover:underline"
+                    style={{ color: '#003E52' }}
+                  >
+                    {article.headline}
+                  </a>
+                  <div className="flex flex-wrap gap-2 mt-1 text-xs" style={{ color: '#6B7280' }}>
+                    <span>{article.outlet}</span>
+                    {article.author && <><span>·</span><span>{article.author}</span></>}
+                  </div>
+                </div>
+                <ScoreBadge tier={article.scoreTier} />
+              </div>
+            ))}
+          </div>
+
+          <div className="flex gap-3">
+            <button className="btn-primary" onClick={handleProceedToScoredNews}>
+              Proceed to Scored Articles
+            </button>
+            <button className="btn-secondary" onClick={handleStartNewBatch}>
+              Start New Batch
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 }
