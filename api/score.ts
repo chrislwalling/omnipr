@@ -237,15 +237,22 @@ ${articlesWithContent}`;
 
     const uploadDate = today();
     try {
-      await appendToSheet('Scored Articles Log', scored.map(a => [
+      const rowsToAppend = scored.map(a => [
         a.headline, a.url, a.author, a.outlet, a.uvm,
         a.articleType, a.scoreTier, a.competitorProperty,
         a.scoringExplanation, a.pitchAngle,
         String(a.syndicationCount),
         a.knownContact ? 'Yes' : 'No',
         uploadDate,
-      ]));
-    } catch { /* non-fatal */ }
+      ]);
+      console.log(`[score] Appending ${rowsToAppend.length} rows to Scored Articles Log`);
+      if (rowsToAppend.length > 0) {
+        console.log(`[score] First row sample:`, rowsToAppend[0].slice(0, 3));
+      }
+      await appendToSheet('Scored Articles Log', rowsToAppend);
+    } catch (e) {
+      console.error('[score] Failed to append:', (e as Error).message);
+    }
 
     const counts = scored.reduce(
       (acc, a) => {
