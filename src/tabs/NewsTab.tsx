@@ -147,7 +147,7 @@ export default function NewsTab({ onWritePitch }: Props) {
   if (phase === 'upload') {
     return (
       <div className="p-8">
-        <h2 style={{ color: '#1B2F52', marginBottom: '1.5rem' }}>News</h2>
+        <h2 style={{ color: '#003E52', marginBottom: '1.5rem' }}>News</h2>
         <div className="max-w-2xl mx-auto">
           <div
             onDragOver={e => { e.preventDefault(); setDragging(true); }}
@@ -156,31 +156,31 @@ export default function NewsTab({ onWritePitch }: Props) {
             onClick={() => inputRef.current?.click()}
             className="cursor-pointer rounded-xl flex flex-col items-center justify-center gap-3 py-16 px-8 transition-colors"
             style={{
-              border: `2px dashed ${dragging ? '#C9A84C' : '#8A9BB0'}`,
-              backgroundColor: dragging ? 'rgba(201,168,76,0.06)' : '#fff',
+              border: `2px dashed ${dragging ? '#C8A45A' : '#6B7280'}`,
+              backgroundColor: dragging ? 'rgba(200,164,90,0.06)' : '#fff',
               minHeight: '220px',
             }}
           >
             <svg width="44" height="44" fill="none" viewBox="0 0 24 24"
-              stroke={dragging ? '#C9A84C' : '#8A9BB0'} strokeWidth={1.5}>
+              stroke={dragging ? '#C8A45A' : '#6B7280'} strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round"
                 d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
             </svg>
-            <p className="text-base font-medium" style={{ color: dragging ? '#C9A84C' : '#1B2F52' }}>
+            <p className="text-base font-medium" style={{ color: dragging ? '#C8A45A' : '#003E52' }}>
               Drop your Muck Rack CSV export here
             </p>
-            <p className="text-sm" style={{ color: '#8A9BB0' }}>or click to browse (.csv, .xlsx)</p>
+            <p className="text-sm" style={{ color: '#6B7280' }}>or click to browse (.csv, .xlsx)</p>
             <input ref={inputRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handleFileChange} />
           </div>
 
           {file && (
-            <div className="mt-4 flex items-center gap-3 rounded-lg px-4 py-3" style={{ background: '#E8E0D4' }}>
-              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="#1B2F52" strokeWidth={1.5}>
+            <div className="mt-4 flex items-center gap-3 rounded-lg px-4 py-3" style={{ background: '#E5E7EB' }}>
+              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="#003E52" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round"
                   d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
               </svg>
-              <span className="text-sm font-medium" style={{ color: '#1B2F52' }}>{file.name}</span>
-              <button className="ml-auto text-xs" style={{ color: '#8A9BB0' }}
+              <span className="text-sm font-medium" style={{ color: '#003E52' }}>{file.name}</span>
+              <button className="ml-auto text-xs" style={{ color: '#6B7280' }}
                 onClick={e => { e.stopPropagation(); setFile(null); if (inputRef.current) inputRef.current.value = ''; }}>
                 Remove
               </button>
@@ -209,22 +209,22 @@ export default function NewsTab({ onWritePitch }: Props) {
       <div className="p-8 flex flex-col items-center justify-center" style={{ minHeight: '60vh' }}>
         <div className="max-w-sm w-full text-center space-y-6">
           <div className="w-12 h-12 rounded-full mx-auto flex items-center justify-center animate-pulse"
-            style={{ backgroundColor: 'rgba(201,168,76,0.2)' }}>
-            <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="#C9A84C" strokeWidth={1.5}>
+            style={{ backgroundColor: 'rgba(200,164,90,0.2)' }}>
+            <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="#C8A45A" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
             </svg>
           </div>
           <div>
-            <p className="text-base font-semibold" style={{ color: '#1B2F52' }}>{progressLabel}</p>
-            <p className="text-sm mt-1" style={{ color: '#8A9BB0' }}>This may take 20–60 seconds</p>
+            <p className="text-base font-semibold" style={{ color: '#003E52' }}>{progressLabel}</p>
+            <p className="text-sm mt-1" style={{ color: '#6B7280' }}>This may take 20–60 seconds</p>
           </div>
-          <div className="rounded-full overflow-hidden" style={{ height: '8px', background: '#E8E0D4' }}>
+          <div className="rounded-full overflow-hidden" style={{ height: '8px', background: '#E5E7EB' }}>
             <div
               className="h-full rounded-full transition-all duration-700"
-              style={{ width: `${progress}%`, background: '#C9A84C' }}
+              style={{ width: `${progress}%`, background: '#C8A45A' }}
             />
           </div>
-          <p className="text-xs" style={{ color: '#8A9BB0' }}>{progress}%</p>
+          <p className="text-xs" style={{ color: '#6B7280' }}>{progress}%</p>
         </div>
       </div>
     );
@@ -241,21 +241,21 @@ export default function NewsTab({ onWritePitch }: Props) {
     <div className="p-8">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 style={{ color: '#1B2F52', marginBottom: '0.25rem' }}>Scored Articles</h2>
+          <h2 style={{ color: '#003E52', marginBottom: '0.25rem' }}>Scored Articles</h2>
           <div className="flex gap-4 text-sm">
-            <span style={{ color: '#C9A84C' }}>{counts.high} High</span>
-            <span style={{ color: '#1B2F52' }}>{counts.medium} Medium</span>
-            <span style={{ color: '#8A9BB0' }}>{counts.low} Low</span>
+            <span style={{ color: '#C8A45A' }}>{counts.high} High</span>
+            <span style={{ color: '#003E52' }}>{counts.medium} Medium</span>
+            <span style={{ color: '#6B7280' }}>{counts.low} Low</span>
             {discardCount > 0 && <span style={{ color: '#94a3b8' }}>{discardCount} Discarded</span>}
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <label className="text-xs" style={{ color: '#8A9BB0' }}>Sort by</label>
+          <label className="text-xs" style={{ color: '#6B7280' }}>Sort by</label>
           <select
             value={sortField}
             onChange={e => setSortField(e.target.value as SortField)}
             className="border rounded px-3 py-1.5 text-sm"
-            style={{ borderColor: '#E8E0D4', color: '#1B2F52' }}
+            style={{ borderColor: '#E5E7EB', color: '#003E52' }}
           >
             <option value="scoreTier">Score Tier</option>
             <option value="publishDate">Publish Date</option>
@@ -329,7 +329,7 @@ function ArticleCard({
   return (
     <div
       className="rounded-xl p-5 space-y-3"
-      style={{ backgroundColor: '#fff', border: '1px solid #E8E0D4' }}
+      style={{ backgroundColor: '#fff', border: '1px solid #E5E7EB' }}
     >
       {/* Header row */}
       <div className="flex items-start justify-between gap-4">
@@ -339,11 +339,11 @@ function ArticleCard({
             target="_blank"
             rel="noopener noreferrer"
             className="font-medium hover:underline leading-snug"
-            style={{ color: '#1B2F52', fontFamily: 'Georgia, serif' }}
+            style={{ color: '#003E52', fontFamily: 'Georgia, serif' }}
           >
             {article.headline}
           </a>
-          <div className="flex flex-wrap gap-2 mt-1.5 text-xs" style={{ color: '#8A9BB0' }}>
+          <div className="flex flex-wrap gap-2 mt-1.5 text-xs" style={{ color: '#6B7280' }}>
             <span>{article.outlet}</span>
             {article.author && <><span>·</span><span>{article.author}</span></>}
             {article.uvm && <><span>·</span><span>UVM: {Number(article.uvm).toLocaleString()}</span></>}
@@ -375,14 +375,14 @@ function ArticleCard({
       <div className="grid grid-cols-2 gap-3 text-xs">
         {article.articleType && (
           <div>
-            <span style={{ color: '#8A9BB0' }}>Type: </span>
-            <span style={{ color: '#1B2F52' }}>{article.articleType}</span>
+            <span style={{ color: '#6B7280' }}>Type: </span>
+            <span style={{ color: '#003E52' }}>{article.articleType}</span>
           </div>
         )}
         {article.competitorProperty && (
           <div>
-            <span style={{ color: '#8A9BB0' }}>Competitor: </span>
-            <span style={{ color: '#1B2F52' }}>{article.competitorProperty}</span>
+            <span style={{ color: '#6B7280' }}>Competitor: </span>
+            <span style={{ color: '#003E52' }}>{article.competitorProperty}</span>
           </div>
         )}
       </div>
@@ -394,10 +394,10 @@ function ArticleCard({
       {article.pitchAngle && (
         <div
           className="rounded-lg px-4 py-3 text-sm"
-          style={{ backgroundColor: 'rgba(201,168,76,0.08)', borderLeft: '3px solid #C9A84C' }}
+          style={{ backgroundColor: 'rgba(200,164,90,0.08)', borderLeft: '3px solid #C8A45A' }}
         >
-          <span className="font-semibold" style={{ color: '#C9A84C' }}>Pitch angle: </span>
-          <span style={{ color: '#1B2F52' }}>{article.pitchAngle}</span>
+          <span className="font-semibold" style={{ color: '#C8A45A' }}>Pitch angle: </span>
+          <span style={{ color: '#003E52' }}>{article.pitchAngle}</span>
         </div>
       )}
 
@@ -420,8 +420,8 @@ function ArticleCard({
         <button
           className="text-xs px-3 py-1.5 rounded border transition-colors"
           style={{
-            borderColor: correctionOpen ? '#C9A84C' : '#E8E0D4',
-            color: correctionOpen ? '#C9A84C' : '#8A9BB0',
+            borderColor: correctionOpen ? '#C8A45A' : '#E5E7EB',
+            color: correctionOpen ? '#C8A45A' : '#6B7280',
           }}
           onClick={onToggleCorrection}
         >
@@ -433,17 +433,17 @@ function ArticleCard({
       {correctionOpen && (
         <div
           className="rounded-lg p-4 space-y-3 mt-2"
-          style={{ backgroundColor: '#F8F5F0', border: '1px solid #E8E0D4' }}
+          style={{ backgroundColor: '#F8F5F0', border: '1px solid #E5E7EB' }}
         >
-          <p className="text-xs font-semibold" style={{ color: '#1B2F52' }}>Submit Scoring Correction</p>
+          <p className="text-xs font-semibold" style={{ color: '#003E52' }}>Submit Scoring Correction</p>
           <div className="flex gap-3 items-end">
             <div>
-              <label className="text-xs" style={{ color: '#8A9BB0' }}>Corrected Score</label>
+              <label className="text-xs" style={{ color: '#6B7280' }}>Corrected Score</label>
               <select
                 value={correctionScore}
                 onChange={e => onCorrectionScore(e.target.value as ScoreTier)}
                 className="block mt-1 border rounded px-3 py-1.5 text-sm"
-                style={{ borderColor: '#E8E0D4', color: '#1B2F52' }}
+                style={{ borderColor: '#E5E7EB', color: '#003E52' }}
               >
                 <option>High</option>
                 <option>Medium</option>
@@ -452,14 +452,14 @@ function ArticleCard({
               </select>
             </div>
             <div className="flex-1">
-              <label className="text-xs" style={{ color: '#8A9BB0' }}>Reason (required)</label>
+              <label className="text-xs" style={{ color: '#6B7280' }}>Reason (required)</label>
               <input
                 type="text"
                 value={correctionReason}
                 onChange={e => onCorrectionReason(e.target.value)}
                 placeholder="Why should this be re-scored?"
                 className="block w-full mt-1 border rounded px-3 py-1.5 text-sm"
-                style={{ borderColor: '#E8E0D4', color: '#1B2F52' }}
+                style={{ borderColor: '#E5E7EB', color: '#003E52' }}
               />
             </div>
           </div>

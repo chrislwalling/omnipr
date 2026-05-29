@@ -23,7 +23,7 @@ export default function App() {
   }
 
   return (
-    <div className="flex min-h-screen" style={{ backgroundColor: '#F8F5F0' }}>
+    <div className="flex min-h-screen" style={{ backgroundColor: '#FFFFFF' }}>
       <Sidebar activeTab={activeTab} onTabChange={handleTabChange} />
       <main
         className="flex-1 overflow-auto"

@@ -142,9 +142,9 @@ export default function PitchesTab({ initialContext }: Props) {
     return (
       <div className="p-8 flex items-center justify-center" style={{ minHeight: '60vh' }}>
         <div className="text-center space-y-4">
-          <Loader2 size={36} className="animate-spin mx-auto" style={{ color: '#C9A84C' }} />
-          <p className="font-medium" style={{ color: '#1B2F52', fontFamily: 'Georgia, serif' }}>Writing pitch...</p>
-          <p className="text-sm" style={{ color: '#8A9BB0' }}>Claude is generating a targeted pitch for {selectedProperty}</p>
+          <Loader2 size={36} className="animate-spin mx-auto" style={{ color: '#C8A45A' }} />
+          <p className="font-medium" style={{ color: '#003E52', fontFamily: 'Georgia, serif' }}>Writing pitch...</p>
+          <p className="text-sm" style={{ color: '#6B7280' }}>Claude is generating a targeted pitch for {selectedProperty}</p>
         </div>
       </div>
     );
@@ -157,8 +157,8 @@ export default function PitchesTab({ initialContext }: Props) {
         <div className="max-w-3xl space-y-6">
           <div className="flex items-start justify-between">
             <div>
-              <h2 style={{ color: '#1B2F52', marginBottom: '0.25rem' }}>Pitch Draft</h2>
-              <p className="text-sm" style={{ color: '#8A9BB0' }}>
+              <h2 style={{ color: '#003E52', marginBottom: '0.25rem' }}>Pitch Draft</h2>
+              <p className="text-sm" style={{ color: '#6B7280' }}>
                 For {journalistName || 'journalist'}{outlet ? ` at ${outlet}` : ''} — {selectedProperty}
               </p>
             </div>
@@ -169,24 +169,24 @@ export default function PitchesTab({ initialContext }: Props) {
 
           {/* Subject line */}
           <div>
-            <label className="block text-xs font-semibold mb-1" style={{ color: '#8A9BB0' }}>SUBJECT LINE</label>
+            <label className="block text-xs font-semibold mb-1" style={{ color: '#6B7280' }}>SUBJECT LINE</label>
             <input
               type="text"
               value={subjectLine}
               onChange={e => setSubjectLine(e.target.value)}
               className="w-full border rounded-lg px-4 py-2 text-sm font-medium"
-              style={{ borderColor: '#E8E0D4', color: '#1B2F52' }}
+              style={{ borderColor: '#E5E7EB', color: '#003E52' }}
             />
           </div>
 
           {/* Body */}
           <div>
-            <label className="block text-xs font-semibold mb-1" style={{ color: '#8A9BB0' }}>PITCH BODY</label>
+            <label className="block text-xs font-semibold mb-1" style={{ color: '#6B7280' }}>PITCH BODY</label>
             <textarea
               value={body}
               onChange={e => setBody(e.target.value)}
               className="w-full rounded-lg border p-4 text-sm leading-relaxed"
-              style={{ borderColor: '#E8E0D4', minHeight: '300px', color: '#1B2F52', resize: 'vertical' }}
+              style={{ borderColor: '#E5E7EB', minHeight: '300px', color: '#003E52', resize: 'vertical' }}
             />
             <div className="flex justify-end mt-2">
               <button className="btn-secondary flex items-center gap-1.5 text-sm" onClick={handleCopy}>
@@ -198,16 +198,16 @@ export default function PitchesTab({ initialContext }: Props) {
           {/* Refinement */}
           <div
             className="rounded-xl p-5 space-y-3"
-            style={{ backgroundColor: '#fff', border: '1px solid #E8E0D4' }}
+            style={{ backgroundColor: '#fff', border: '1px solid #E5E7EB' }}
           >
-            <p className="text-sm font-semibold" style={{ color: '#1B2F52' }}>Refine this pitch</p>
+            <p className="text-sm font-semibold" style={{ color: '#003E52' }}>Refine this pitch</p>
             <input
               type="text"
               value={feedback}
               onChange={e => setFeedback(e.target.value)}
               placeholder="e.g. Make it shorter, lead with the renovation, reference NCAA hosting..."
               className="w-full border rounded-lg px-4 py-2 text-sm"
-              style={{ borderColor: '#E8E0D4', color: '#1B2F52' }}
+              style={{ borderColor: '#E5E7EB', color: '#003E52' }}
             />
             <button
               className="btn-secondary flex items-center gap-2 text-sm"
@@ -227,9 +227,9 @@ export default function PitchesTab({ initialContext }: Props) {
           {!saved ? (
             <div
               className="rounded-xl p-4 flex items-center justify-between"
-              style={{ backgroundColor: '#fff', border: '1.5px solid #E8E0D4' }}
+              style={{ backgroundColor: '#fff', border: '1.5px solid #E5E7EB' }}
             >
-              <p className="text-sm" style={{ color: '#1B2F52' }}>Save this pitch to Pitch Tracker</p>
+              <p className="text-sm" style={{ color: '#003E52' }}>Save this pitch to Pitch Tracker</p>
               <button className="btn-primary flex items-center gap-2" onClick={handleSave} disabled={saving}>
                 {saving && <Loader2 size={14} className="animate-spin" />}
                 {saving ? 'Saving...' : 'Save Pitch'}
@@ -252,59 +252,59 @@ export default function PitchesTab({ initialContext }: Props) {
   // ── Form state ─────────────────────────────────────────────────────
   return (
     <div className="p-8">
-      <h2 style={{ color: '#1B2F52', marginBottom: '1.5rem' }}>Write a Pitch</h2>
+      <h2 style={{ color: '#003E52', marginBottom: '1.5rem' }}>Write a Pitch</h2>
       <div className="max-w-xl space-y-6">
 
         {/* Step 1: Context */}
         <section
           className="rounded-xl p-5 space-y-4"
-          style={{ backgroundColor: '#fff', border: '1px solid #E8E0D4' }}
+          style={{ backgroundColor: '#fff', border: '1px solid #E5E7EB' }}
         >
-          <p className="text-xs font-semibold tracking-widest uppercase" style={{ color: '#C9A84C' }}>Step 1 — Journalist Context</p>
+          <p className="text-xs font-semibold tracking-widest uppercase" style={{ color: '#C8A45A' }}>Step 1 — Journalist Context</p>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium mb-1" style={{ color: '#1B2F52' }}>Journalist Name</label>
+              <label className="block text-xs font-medium mb-1" style={{ color: '#003E52' }}>Journalist Name</label>
               <input
                 type="text"
                 value={journalistName}
                 onChange={e => setJournalistName(e.target.value)}
                 className="w-full border rounded-lg px-3 py-2 text-sm"
-                style={{ borderColor: '#E8E0D4', color: '#1B2F52' }}
+                style={{ borderColor: '#E5E7EB', color: '#003E52' }}
                 placeholder="Full name"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium mb-1" style={{ color: '#1B2F52' }}>Outlet</label>
+              <label className="block text-xs font-medium mb-1" style={{ color: '#003E52' }}>Outlet</label>
               <input
                 type="text"
                 value={outlet}
                 onChange={e => setOutlet(e.target.value)}
                 className="w-full border rounded-lg px-3 py-2 text-sm"
-                style={{ borderColor: '#E8E0D4', color: '#1B2F52' }}
+                style={{ borderColor: '#E5E7EB', color: '#003E52' }}
                 placeholder="e.g. Golf Digest"
               />
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium mb-1" style={{ color: '#1B2F52' }}>Competitor Property They Covered</label>
+            <label className="block text-xs font-medium mb-1" style={{ color: '#003E52' }}>Competitor Property They Covered</label>
             <input
               type="text"
               value={competitorProperty}
               onChange={e => setCompetitorProperty(e.target.value)}
               className="w-full border rounded-lg px-3 py-2 text-sm"
-              style={{ borderColor: '#E8E0D4', color: '#1B2F52' }}
+              style={{ borderColor: '#E5E7EB', color: '#003E52' }}
               placeholder="e.g. Pinehurst, Pebble Beach"
             />
           </div>
           {articleHeadline && (
             <div>
-              <label className="block text-xs font-medium mb-1" style={{ color: '#8A9BB0' }}>Source Article</label>
+              <label className="block text-xs font-medium mb-1" style={{ color: '#6B7280' }}>Source Article</label>
               <p className="text-sm" style={{ color: '#475569' }}>{articleHeadline}</p>
             </div>
           )}
           {pitchAngle && (
             <div>
-              <label className="block text-xs font-medium mb-1" style={{ color: '#8A9BB0' }}>Suggested Angle</label>
+              <label className="block text-xs font-medium mb-1" style={{ color: '#6B7280' }}>Suggested Angle</label>
               <p className="text-sm" style={{ color: '#475569' }}>{pitchAngle}</p>
             </div>
           )}
@@ -313,15 +313,15 @@ export default function PitchesTab({ initialContext }: Props) {
         {/* Step 2: Property selection */}
         <section
           className="rounded-xl p-5 space-y-4"
-          style={{ backgroundColor: '#fff', border: '1px solid #E8E0D4' }}
+          style={{ backgroundColor: '#fff', border: '1px solid #E5E7EB' }}
         >
-          <p className="text-xs font-semibold tracking-widest uppercase" style={{ color: '#C9A84C' }}>Step 2 — Select Omni Property</p>
-          <p className="text-xs" style={{ color: '#8A9BB0' }}>12 properties in the Omni Golf Collection. Priority properties listed first.</p>
+          <p className="text-xs font-semibold tracking-widest uppercase" style={{ color: '#C8A45A' }}>Step 2 — Select Omni Property</p>
+          <p className="text-xs" style={{ color: '#6B7280' }}>12 properties in the Omni Golf Collection. Priority properties listed first.</p>
           <select
             value={selectedProperty}
             onChange={e => setSelectedProperty(e.target.value)}
             className="w-full border rounded-lg px-3 py-2 text-sm"
-            style={{ borderColor: selectedProperty ? '#C9A84C' : '#E8E0D4', color: '#1B2F52' }}
+            style={{ borderColor: selectedProperty ? '#C8A45A' : '#E5E7EB', color: '#003E52' }}
           >
             <option value="">Select a property...</option>
             <optgroup label="★ Priority Properties">
