@@ -35,7 +35,7 @@ export interface MediaContact {
   sourceArticleUrl: string;
   competitorPropertyCovered: string;
   pitchAngle: string;
-  dateAdded: string;
+  lastPitched: string;
   rowIndex?: number;
 }
 
