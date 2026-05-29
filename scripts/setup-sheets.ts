@@ -1,5 +1,5 @@
 /**
- * Run once to scaffold the four required Google Sheets tabs.
+ * Run once to scaffold required Google Sheets tabs.
  * Usage: npx ts-node scripts/setup-sheets.ts
  *
  * Requires GOOGLE_SHEETS_CREDENTIALS and OMNI_SHEET_ID env vars.
@@ -27,6 +27,9 @@ const TABS: Record<string, string[]> = {
     'Score Tier', 'Competitor Property', 'Scoring Explanation', 'Pitch Angle',
     'Syndication Count', 'Known Contact', 'Upload Date',
   ],
+  'My Metrics': [
+    'Date', 'Articles Scored', 'New Contacts Added', 'Pitches Drafted', 'Opportunities Converted',
+  ],
 };
 
 async function main() {
@@ -39,18 +42,14 @@ async function main() {
   });
   const sheets = google.sheets({ version: 'v4', auth });
 
-  // Get existing sheet tabs
   const meta = await sheets.spreadsheets.get({ spreadsheetId: SHEET_ID, fields: 'sheets.properties.title' });
   const existingTabs = new Set((meta.data.sheets || []).map(s => s.properties?.title || ''));
 
   const requests: object[] = [];
-
-  for (const [tabName, columns] of Object.entries(TABS)) {
+  for (const [tabName] of Object.entries(TABS)) {
     if (!existingTabs.has(tabName)) {
       console.log(`Creating tab: ${tabName}`);
-      requests.push({
-        addSheet: { properties: { title: tabName } },
-      });
+      requests.push({ addSheet: { properties: { title: tabName } } });
     } else {
       console.log(`Tab already exists: ${tabName}`);
     }
@@ -63,7 +62,6 @@ async function main() {
     });
   }
 
-  // Write headers to each tab
   for (const [tabName, columns] of Object.entries(TABS)) {
     const existing = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID,

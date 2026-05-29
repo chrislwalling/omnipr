@@ -31,7 +31,7 @@ export default function PitchTrackerTab() {
           body: r['Body'] || '',
           dateSaved: r['Date Saved'] || '',
           status: r['Status'] || 'Draft',
-          rowIndex: i + 2, // 1-based header offset
+          rowIndex: i + 2,
         })
       );
       setPitches(rows);
@@ -88,6 +88,14 @@ export default function PitchTrackerTab() {
           ],
         }),
       });
+      // Increment My Metrics when a pitch is converted (non-blocking)
+      if (newStatus === 'Closed') {
+        fetch('/api/metrics-increment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ opportunitiesConverted: 1 }),
+        }).catch(() => {});
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -102,7 +110,6 @@ export default function PitchTrackerTab() {
         <button className="btn-secondary text-sm" onClick={loadPitches}>Refresh</button>
       </div>
 
-      {/* Filters */}
       <div className="flex flex-wrap gap-3 mb-5">
         <input
           type="text"

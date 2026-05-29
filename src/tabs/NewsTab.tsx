@@ -7,6 +7,14 @@ type SortField = 'scoreTier' | 'publishDate';
 
 const TIER_ORDER: Record<ScoreTier, number> = { High: 0, Medium: 1, Low: 2, Discard: 3 };
 
+function incrementMetrics(payload: Record<string, number>) {
+  fetch('/api/metrics-increment', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  }).catch(() => {});
+}
+
 interface Props {
   onWritePitch: (ctx: PitchContext) => void;
 }
@@ -79,6 +87,9 @@ export default function NewsTab({ onWritePitch }: Props) {
         body: JSON.stringify(counts),
       }).catch(() => {});
 
+      // Increment My Metrics (non-blocking)
+      incrementMetrics({ articlesScored: scored.length });
+
       setProgress(100);
       setArticles(scored);
       setPhase('scored');
@@ -115,6 +126,8 @@ export default function NewsTab({ onWritePitch }: Props) {
         ]],
       }),
     });
+    // Increment My Metrics (non-blocking)
+    incrementMetrics({ newContactsAdded: 1 });
   }
 
   async function submitCorrection(article: ScoredArticle) {
@@ -403,10 +416,7 @@ function ArticleCard({
 
       {/* Action buttons */}
       <div className="flex flex-wrap items-center gap-2 pt-1">
-        <button
-          className="btn-primary text-xs px-3 py-1.5"
-          onClick={onWritePitch}
-        >
+        <button className="btn-primary text-xs px-3 py-1.5" onClick={onWritePitch}>
           Write Pitch
         </button>
         <button
@@ -471,10 +481,7 @@ function ArticleCard({
             >
               {correctionSubmitting ? 'Saving...' : 'Submit'}
             </button>
-            <button
-              className="btn-secondary text-xs px-3 py-1.5"
-              onClick={onToggleCorrection}
-            >
+            <button className="btn-secondary text-xs px-3 py-1.5" onClick={onToggleCorrection}>
               Cancel
             </button>
           </div>

@@ -29,17 +29,14 @@ interface Props {
 export default function PitchesTab({ initialContext }: Props) {
   const [step, setStep] = useState<Step>('form');
 
-  // Step 1 context (read-only if pre-filled)
   const [journalistName, setJournalistName] = useState(initialContext?.journalistName || '');
   const [outlet, setOutlet] = useState(initialContext?.outlet || '');
   const [competitorProperty, setCompetitorProperty] = useState(initialContext?.competitorProperty || '');
   const [articleHeadline, setArticleHeadline] = useState(initialContext?.articleHeadline || '');
   const [pitchAngle, setPitchAngle] = useState(initialContext?.pitchAngle || '');
 
-  // Step 2: property selection
   const [selectedProperty, setSelectedProperty] = useState('');
 
-  // Step 3+: generated pitch
   const [subjectLine, setSubjectLine] = useState('');
   const [body, setBody] = useState('');
   const [feedback, setFeedback] = useState('');
@@ -49,7 +46,6 @@ export default function PitchesTab({ initialContext }: Props) {
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Update form when context changes (navigated from another tab)
   useEffect(() => {
     if (initialContext) {
       setJournalistName(initialContext.journalistName || '');
@@ -123,6 +119,12 @@ export default function PitchesTab({ initialContext }: Props) {
           ]],
         }),
       });
+      // Increment My Metrics (non-blocking)
+      fetch('/api/metrics-increment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pitchesDrafted: 1 }),
+      }).catch(() => {});
       setSaved(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Save failed');
@@ -137,7 +139,7 @@ export default function PitchesTab({ initialContext }: Props) {
     setTimeout(() => setCopied(false), 2000);
   }
 
-  // ── Generating state ───────────────────────────────────────────────
+  // ── Generating ─────────────────────────────────────────────────────
   if (step === 'generating') {
     return (
       <div className="p-8 flex items-center justify-center" style={{ minHeight: '60vh' }}>
@@ -150,7 +152,7 @@ export default function PitchesTab({ initialContext }: Props) {
     );
   }
 
-  // ── Result state ──────────────────────────────────────────────────
+  // ── Result ─────────────────────────────────────────────────────────
   if (step === 'result') {
     return (
       <div className="p-8">
@@ -162,12 +164,9 @@ export default function PitchesTab({ initialContext }: Props) {
                 For {journalistName || 'journalist'}{outlet ? ` at ${outlet}` : ''} — {selectedProperty}
               </p>
             </div>
-            <button className="btn-secondary text-sm" onClick={() => setStep('form')}>
-              ← Edit
-            </button>
+            <button className="btn-secondary text-sm" onClick={() => setStep('form')}>← Edit</button>
           </div>
 
-          {/* Subject line */}
           <div>
             <label className="block text-xs font-semibold mb-1" style={{ color: '#6B7280' }}>SUBJECT LINE</label>
             <input
@@ -179,7 +178,6 @@ export default function PitchesTab({ initialContext }: Props) {
             />
           </div>
 
-          {/* Body */}
           <div>
             <label className="block text-xs font-semibold mb-1" style={{ color: '#6B7280' }}>PITCH BODY</label>
             <textarea
@@ -195,7 +193,6 @@ export default function PitchesTab({ initialContext }: Props) {
             </div>
           </div>
 
-          {/* Refinement */}
           <div
             className="rounded-xl p-5 space-y-3"
             style={{ backgroundColor: '#fff', border: '1px solid #E5E7EB' }}
@@ -223,7 +220,6 @@ export default function PitchesTab({ initialContext }: Props) {
             <div className="rounded-lg px-4 py-3 text-sm" style={{ background: '#fee2e2', color: '#991b1b' }}>{error}</div>
           )}
 
-          {/* Save */}
           {!saved ? (
             <div
               className="rounded-xl p-4 flex items-center justify-between"
@@ -249,13 +245,12 @@ export default function PitchesTab({ initialContext }: Props) {
     );
   }
 
-  // ── Form state ─────────────────────────────────────────────────────
+  // ── Form ───────────────────────────────────────────────────────────
   return (
     <div className="p-8">
       <h2 style={{ color: '#003E52', marginBottom: '1.5rem' }}>Write a Pitch</h2>
       <div className="max-w-xl space-y-6">
 
-        {/* Step 1: Context */}
         <section
           className="rounded-xl p-5 space-y-4"
           style={{ backgroundColor: '#fff', border: '1px solid #E5E7EB' }}
@@ -310,7 +305,6 @@ export default function PitchesTab({ initialContext }: Props) {
           )}
         </section>
 
-        {/* Step 2: Property selection */}
         <section
           className="rounded-xl p-5 space-y-4"
           style={{ backgroundColor: '#fff', border: '1px solid #E5E7EB' }}
