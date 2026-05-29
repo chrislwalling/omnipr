@@ -4,9 +4,10 @@ import NewsTab from './tabs/NewsTab';
 import MediaTab from './tabs/MediaTab';
 import PitchesTab from './tabs/PitchesTab';
 import PitchTrackerTab from './tabs/PitchTrackerTab';
+import UsageTab from './tabs/UsageTab';
 import type { PitchContext } from './types';
 
-export type TabId = 'news' | 'media' | 'pitches' | 'tracker';
+export type TabId = 'news' | 'media' | 'pitches' | 'tracker' | 'usage';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabId>('news');
@@ -29,10 +30,11 @@ export default function App() {
         className="flex-1 overflow-auto"
         style={{ marginLeft: '220px', minHeight: '100vh' }}
       >
-        {activeTab === 'news' && <NewsTab onWritePitch={navigateToPitches} />}
-        {activeTab === 'media' && <MediaTab onWritePitch={navigateToPitches} />}
+        {activeTab === 'news'    && <NewsTab onWritePitch={navigateToPitches} />}
+        {activeTab === 'media'   && <MediaTab onWritePitch={navigateToPitches} />}
         {activeTab === 'pitches' && <PitchesTab initialContext={pitchContext} />}
         {activeTab === 'tracker' && <PitchTrackerTab />}
+        {activeTab === 'usage'   && <UsageTab />}
       </main>
     </div>
   );

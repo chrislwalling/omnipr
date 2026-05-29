@@ -1,13 +1,17 @@
-import { Newspaper, Users, PenLine, ClipboardList } from 'lucide-react';
+import { Newspaper, Users, PenLine, ClipboardList, BarChart2 } from 'lucide-react';
 import type { TabId } from '../App';
 import SystemStatus from './SystemStatus';
 import OmniLogo from './OmniLogo';
 
+// Replace the styled "O" placeholder with omni-logo.svg once Chris provides the asset:
+// <img src="/omni-logo.svg" alt="Omni Hotels" className="w-10 h-10" />
+
 const NAV_ITEMS: { id: TabId; label: string; Icon: React.FC<{ size: number }> }[] = [
-  { id: 'news', label: 'News', Icon: Newspaper },
-  { id: 'media', label: 'Media', Icon: Users },
-  { id: 'pitches', label: 'Pitches', Icon: PenLine },
-  { id: 'tracker', label: 'Pitch Tracker', Icon: ClipboardList },
+  { id: 'news',    label: 'News',         Icon: Newspaper },
+  { id: 'media',   label: 'Media',        Icon: Users },
+  { id: 'pitches', label: 'Pitches',      Icon: PenLine },
+  { id: 'tracker', label: 'Pitch Tracker',Icon: ClipboardList },
+  { id: 'usage',   label: 'Usage',        Icon: BarChart2 },
 ];
 
 interface Props {
@@ -25,7 +29,7 @@ export default function Sidebar({ activeTab, onTabChange }: Props) {
         borderRight: '1px solid rgba(200,164,90,0.15)',
       }}
     >
-      {/* Logo */}
+      {/* Logo area — swap inner content for <img src="/omni-logo.svg" /> when available */}
       <div
         className="flex flex-col items-center justify-center px-4 py-6"
         style={{ borderBottom: '1px solid rgba(200,164,90,0.15)', minHeight: '100px' }}
@@ -49,7 +53,7 @@ export default function Sidebar({ activeTab, onTabChange }: Props) {
             <button
               key={id}
               onClick={() => onTabChange(id)}
-              className="flex items-center w-full px-4 py-3 text-sm font-medium transition-colors relative"
+              className="flex items-center w-full px-4 py-3 text-sm font-medium transition-colors"
               style={{
                 color: active ? '#C8A45A' : 'rgba(255,255,255,0.6)',
                 backgroundColor: active ? 'rgba(200,164,90,0.12)' : 'transparent',
