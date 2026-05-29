@@ -91,6 +91,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!rawRows.length) return res.status(400).json({ error: 'No rows found in file' });
 
     const keys = Object.keys(rawRows[0]);
+    console.log(`[muckrack-import] Columns found: ${keys.join(', ')}`);
+    console.log(`[muckrack-import] First row sample:`, rawRows[0]);
 
     // Resolve column keys: exact Muck Rack names first, then regex fallback
     const headlineKey = resolveKey(keys, ['Article'], /headline|title/i);
@@ -124,6 +126,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         pitchPlacement:    row[pitchPlacementKey] || '',
       }))
       .filter(a => a.headline || a.url);
+
+    if (!articles.length) {
+      console.log(`[muckrack-import] No articles passed filter. Keys: ${keys.join(', ')}`);
+      console.log(`[muckrack-import] Resolved: headline="${headlineKey}", url="${urlKey}", outlet="${outletKey}", author="${authorKey}"`);
+      return res.status(400).json({
+        error: 'No valid articles found in file',
+        details: `Could not find headline/url columns. Found columns: ${keys.join(', ')}`,
+      });
+    }
 
     return res.json({ articles, totalRows: rawRows.length, parsedRows: articles.length });
   } catch (e) {

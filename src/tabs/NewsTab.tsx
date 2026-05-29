@@ -61,7 +61,8 @@ export default function NewsTab({ onWritePitch }: Props) {
       const importRes = await fetch('/api/muckrack-import', { method: 'POST', body: formData });
       if (!importRes.ok) {
         const b = await importRes.json().catch(() => ({}));
-        throw new Error(b.error ?? `Import failed (${importRes.status})`);
+        const msg = b.details ? `${b.error} — ${b.details}` : (b.error ?? `Import failed (${importRes.status})`);
+        throw new Error(msg);
       }
       const { articles: parsed } = await importRes.json();
       setProgress(50);
