@@ -7,6 +7,7 @@
     "dev": "vercel dev",
     "vite": "vite",
     "build": "vite build",
+    "prebuild": "find . -not -path './node_modules/*' -name '*.js' \\( -path '*/api/*' -o -path '*/lib/*' \\) -delete",
     "preview": "vite preview"
   },
   "dependencies": {
