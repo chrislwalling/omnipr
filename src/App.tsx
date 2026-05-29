@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
+import PasswordPage from './components/PasswordPage';
 import NewsTab from './tabs/NewsTab';
 import MediaTab from './tabs/MediaTab';
 import PitchesTab from './tabs/PitchesTab';
@@ -10,8 +11,23 @@ import type { PitchContext } from './types';
 export type TabId = 'news' | 'media' | 'pitches' | 'tracker' | 'usage';
 
 export default function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>('news');
   const [pitchContext, setPitchContext] = useState<PitchContext | null>(null);
+
+  useEffect(() => {
+    const isAuth = sessionStorage.getItem('dashboard_authenticated') === 'true';
+    setIsAuthenticated(isAuth);
+  }, []);
+
+  const handleAuthenticate = () => {
+    sessionStorage.setItem('dashboard_authenticated', 'true');
+    setIsAuthenticated(true);
+  };
+
+  if (!isAuthenticated) {
+    return <PasswordPage onAuthenticate={handleAuthenticate} />;
+  }
 
   function navigateToPitches(ctx: PitchContext) {
     setPitchContext(ctx);
