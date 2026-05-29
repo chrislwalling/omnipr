@@ -260,8 +260,15 @@ export default function MediaTab({ onWritePitch }: Props) {
                         </a>
                       ) : <span style={{ color: '#C9C9C9' }}>—</span>}
                     </td>
-                    <td className="text-xs" style={{ color: '#6B7280' }}>
-                      {contact.lastPitched || <span style={{ color: '#C9C9C9' }}>—</span>}
+                    <td>
+                      <input
+                        className="border-b text-sm w-32 bg-transparent outline-none"
+                        style={{ borderColor: '#E5E7EB', color: '#003E52' }}
+                        value={contact.lastPitched}
+                        onChange={e => handleFieldChange(realIdx, 'lastPitched', e.target.value)}
+                        onBlur={() => handleBlur(contact, realIdx)}
+                        placeholder="YYYY-MM-DD"
+                      />
                     </td>
                     <td>
                       <div className="flex gap-2">
