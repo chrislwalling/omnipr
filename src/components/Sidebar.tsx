@@ -7,11 +7,12 @@ import OmniLogo from './OmniLogo';
 // <img src="/omni-logo.svg" alt="Omni Hotels" className="w-10 h-10" />
 
 const NAV_ITEMS: { id: TabId; label: string; Icon: React.FC<{ size: number }> }[] = [
-  { id: 'news',    label: 'News',         Icon: Newspaper },
-  { id: 'media',   label: 'Media',        Icon: Users },
-  { id: 'pitches', label: 'Pitches',      Icon: PenLine },
-  { id: 'tracker', label: 'Pitch Tracker',Icon: ClipboardList },
-  { id: 'usage',   label: 'Usage',        Icon: BarChart2 },
+  { id: 'news-scoring', label: 'News Scoring',   Icon: Newspaper },
+  { id: 'scored-news',  label: 'Scored News',    Icon: Newspaper },
+  { id: 'media',        label: 'Media',          Icon: Users },
+  { id: 'pitches',      label: 'Pitches',        Icon: PenLine },
+  { id: 'tracker',      label: 'Pitch Tracker',  Icon: ClipboardList },
+  { id: 'usage',        label: 'Usage',          Icon: BarChart2 },
 ];
 
 interface Props {
