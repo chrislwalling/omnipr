@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { MediaContact, PitchContext } from '../types';
+import type { MediaContact, PitchContext, SavedPitch } from '../types';
 
 interface Props {
   onWritePitch: (ctx: PitchContext) => void;
@@ -14,25 +14,62 @@ export default function MediaTab({ onWritePitch }: Props) {
   const loadContacts = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/sheets-read', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tab: 'Media List', asObjects: true }),
-      });
-      const data = await res.json();
-      const rows: MediaContact[] = (data.rows || []).map(
+      const [mediaRes, pitchRes] = await Promise.all([
+        fetch('/api/sheets-read', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tab: 'Media List', asObjects: true }),
+        }),
+        fetch('/api/sheets-read', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tab: 'Pitch Tracker', asObjects: true }),
+        }),
+      ]);
+
+      const mediaData = await mediaRes.json();
+      const pitchData = await pitchRes.json();
+
+      const pitches: SavedPitch[] = (pitchData.rows || []).map(
         (r: Record<string, string>, i: number) => ({
+          journalistFirst: r['Journalist First'] || '',
+          journalistLast: r['Journalist Last'] || '',
           outlet: r['Outlet'] || '',
-          first: r['First'] || '',
-          last: r['Last'] || '',
-          contact: r['Contact'] || '',
-          newContact: r['New Contact'] || '',
-          sourceArticleUrl: r['Source Article URL'] || '',
-          competitorPropertyCovered: r['Competitor Property Covered'] || '',
-          pitchAngle: r['Pitch Angle'] || '',
-          dateAdded: r['Date Added'] || '',
-          rowIndex: i + 2, // 1-based, +1 for header
+          omniProperty: r['Omni Property'] || '',
+          subjectLine: r['Subject Line'] || '',
+          body: r['Body'] || '',
+          dateSaved: r['Date Saved'] || '',
+          status: r['Status'] || 'Draft',
+          rowIndex: i + 2,
         })
+      );
+
+      const rows: MediaContact[] = (mediaData.rows || []).map(
+        (r: Record<string, string>, i: number) => {
+          const firstName = r['First'] || '';
+          const lastName = r['Last'] || '';
+          const journalistPitches = pitches.filter(
+            p => p.journalistFirst === firstName && p.journalistLast === lastName
+          );
+          const lastPitched = journalistPitches
+            .map(p => p.dateSaved)
+            .filter(d => d)
+            .sort()
+            .reverse()[0] || '';
+
+          return {
+            outlet: r['Outlet'] || '',
+            first: firstName,
+            last: lastName,
+            contact: r['Contact'] || '',
+            newContact: r['New Contact'] || '',
+            sourceArticleUrl: r['Source Article URL'] || '',
+            competitorPropertyCovered: r['Competitor Property Covered'] || '',
+            pitchAngle: r['Pitch Angle'] || '',
+            lastPitched,
+            rowIndex: i + 2,
+          };
+        }
       );
       setContacts(rows);
     } catch (e) {
@@ -78,7 +115,7 @@ export default function MediaTab({ onWritePitch }: Props) {
             contact.sourceArticleUrl,
             contact.competitorPropertyCovered,
             contact.pitchAngle,
-            contact.dateAdded,
+            contact.lastPitched,
           ],
         }),
       });
@@ -140,7 +177,7 @@ export default function MediaTab({ onWritePitch }: Props) {
                 <th>Competitor Covered</th>
                 <th>Pitch Angle</th>
                 <th>Source Article</th>
-                <th>Date Added</th>
+                <th>Last Pitched</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -224,7 +261,7 @@ export default function MediaTab({ onWritePitch }: Props) {
                       ) : <span style={{ color: '#C9C9C9' }}>—</span>}
                     </td>
                     <td className="text-xs" style={{ color: '#6B7280' }}>
-                      {contact.dateAdded || <span style={{ color: '#C9C9C9' }}>—</span>}
+                      {contact.lastPitched || <span style={{ color: '#C9C9C9' }}>—</span>}
                     </td>
                     <td>
                       <div className="flex gap-2">
