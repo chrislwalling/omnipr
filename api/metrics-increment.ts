@@ -35,6 +35,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     return res.json({ ok: true });
   } catch (e) {
-    return res.status(500).json({ error: (e as Error).message });
+    // Silently fail if "My Metrics" sheet doesn't exist; it's optional
+    const msg = (e as Error).message;
+    if (msg.includes('not found') || msg.includes('INVALID_ARGUMENT')) {
+      return res.json({ ok: true, note: 'My Metrics sheet not found (optional)' });
+    }
+    return res.status(500).json({ error: msg });
   }
 }
