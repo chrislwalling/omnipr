@@ -1,6 +1,6 @@
 import { useRef, useState, ChangeEvent, DragEvent } from 'react';
 import ScoreBadge from '../components/ScoreBadge';
-import type { ScoredArticle } from '../types';
+import type { ArticleInput, ScoredArticle } from '../types';
 
 type Phase = 'upload' | 'analyzing' | 'reviewing';
 
@@ -58,24 +58,58 @@ export default function NewsScoringTab({ onScoringComplete }: Props) {
       const { articles: parsed } = await importRes.json();
       setProgress(50);
 
-      setProgressLabel('Scoring articles with Claude...');
-      setProgress(60);
+      // Batch articles client-side: 20 per call, 30s gap between calls to stay
+      // under the 8K output-token/min org rate limit.
+      const SCORE_BATCH = 20;
+      const batches: ArticleInput[][] = [];
+      for (let i = 0; i < parsed.length; i += SCORE_BATCH) {
+        batches.push(parsed.slice(i, i + SCORE_BATCH));
+      }
 
-      const scoreRes = await fetch('/api/score', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ articles: parsed }),
-      });
-      if (!scoreRes.ok) {
-        const b = await scoreRes.json().catch(() => ({}));
-        throw new Error(b.error ?? `Scoring failed (${scoreRes.status})`);
+      let allScored: ScoredArticle[] = [];
+      let counts = { high: 0, medium: 0, low: 0, discarded: 0 };
+      let note: string | undefined;
+
+      for (let i = 0; i < batches.length; i++) {
+        if (i > 0) {
+          for (let s = 30; s > 0; s--) {
+            setProgressLabel(`Rate-limit pause — next batch in ${s}s (${i}/${batches.length} done)...`);
+            await new Promise(r => setTimeout(r, 1000));
+          }
+        }
+
+        setProgressLabel(
+          batches.length > 1
+            ? `Scoring batch ${i + 1} of ${batches.length}...`
+            : 'Scoring articles with Claude...'
+        );
+        setProgress(60 + Math.round(((i + 0.5) / batches.length) * 30));
+
+        const scoreRes = await fetch('/api/score', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ articles: batches[i] }),
+        });
+        if (!scoreRes.ok) {
+          const b = await scoreRes.json().catch(() => ({}));
+          throw new Error(b.error ?? `Scoring failed (${scoreRes.status})`);
+        }
+        const scoreData = await scoreRes.json();
+        if (!scoreData.scored || !Array.isArray(scoreData.scored)) {
+          console.error('Invalid score response:', scoreData);
+          throw new Error('Scoring returned invalid data structure');
+        }
+        allScored = allScored.concat(scoreData.scored);
+        counts = {
+          high: counts.high + (scoreData.counts?.high ?? 0),
+          medium: counts.medium + (scoreData.counts?.medium ?? 0),
+          low: counts.low + (scoreData.counts?.low ?? 0),
+          discarded: counts.discarded + (scoreData.counts?.discarded ?? 0),
+        };
+        note = scoreData.validationNote ?? note;
       }
-      const scoreData = await scoreRes.json();
-      if (!scoreData.scored || !Array.isArray(scoreData.scored)) {
-        console.error('Invalid score response:', scoreData);
-        throw new Error('Scoring returned invalid data structure');
-      }
-      const { scored, counts, validationNote: note } = scoreData;
+
+      const scored = allScored;
       if (scored.length === 0) {
         console.warn('No articles in scoring response. Input articles:', parsed.length);
       }

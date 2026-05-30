@@ -324,23 +324,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .filter(Boolean)
     );
 
-    // 20 articles × ~300 output tokens each ≈ 6,000 tokens — safely under the 8K/min org limit.
-    // Batches run sequentially to avoid parallel bursts that trigger rate limits.
-    const BATCH_SIZE = 20;
-    const batches = [];
-    for (let i = 0; i < articles.length; i += BATCH_SIZE) {
-      batches.push(articles.slice(i, i + BATCH_SIZE));
-    }
-
-    console.log(`Scoring ${articles.length} articles in ${batches.length} batches of max ${BATCH_SIZE} (sequential)...`);
-
-    const batchResults: ScoredArticle[][] = [];
-    for (let idx = 0; idx < batches.length; idx++) {
-      if (idx > 0) await new Promise(r => setTimeout(r, 30000)); // 30s between batches keeps output tokens under 8K/min
-      batchResults.push(await scoreBatch(batches[idx], idx + 1, correctionContext, mediaNames));
-    }
-
-    let scored = batchResults.flat();
+    // Batching and rate-limit delays are handled by the frontend.
+    // This handler scores one batch of articles (≤20) per call.
+    const scored = await scoreBatch(articles, 1, correctionContext, mediaNames);
 
     // Validate HIGH tier articles against actual content
     const highArticles = scored.filter(a => a.scoreTier === 'High');
