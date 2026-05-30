@@ -115,6 +115,177 @@ OMNI GOLF COLLECTION (12 properties):
 11. Omni Hilton Head (Hilton Head, SC)
 12. Omni Championsgate (Orlando, FL)`;
 
+async function scoreBatch(
+  batchArticles: ArticleInput[],
+  batchIndex: number,
+  correctionContext: string,
+  mediaNames: Set<string>
+): Promise<ScoredArticle[]> {
+  function isKnownAuthor(authorName: string): boolean {
+    const author = authorName.toLowerCase().trim();
+    if (!author) return false;
+    if (mediaNames.has(author)) return true;
+    const authorParts = author.split(/\s+/);
+    const authorLast = authorParts[authorParts.length - 1];
+    return Array.from(mediaNames).some(contactName => {
+      const contactParts = contactName.split(/\s+/);
+      const contactLast = contactParts[contactParts.length - 1];
+      return authorLast === contactLast;
+    });
+  }
+
+  const articlesText = batchArticles.map((a, i) =>
+    `${i + 1}. Headline: "${a.headline}" | Outlet: ${a.outlet} | Author: ${a.author} | UVM: ${a.uvm} | URL: ${a.url} | Date: ${a.publishDate}`
+  ).join('\n');
+
+  const userPrompt = `You are scoring ${batchArticles.length} golf/travel media articles (batch ${batchIndex}).
+
+ARTICLES TO SCORE:
+${articlesText}
+
+TASK: Return a JSON array. One object per article. No other text, no markdown.
+
+REQUIRED FIELDS (exact order):
+{
+  "index": number (1-based),
+  "headline": string,
+  "url": string,
+  "outlet": string,
+  "author": string,
+  "publishDate": string,
+  "uvm": string,
+  "scoreTier": "High" | "Medium" | "Low" | "Discard",
+  "articleType": string,
+  "competitorProperty": string,
+  "scoringExplanation": string,
+  "pitchAngle": string,
+  "syndicationCount": number,
+  "isCanonical": boolean
+}
+
+START JSON ARRAY NOW:`;
+
+  let result;
+  try {
+    console.log(`[BATCH ${batchIndex}] Calling Claude with ${batchArticles.length} articles...`);
+    result = await callClaude({
+      userPrompt,
+      contextString: [
+        OMNI_SCORING_PROMPT,
+        correctionContext ? `\nSCORING CORRECTIONS:\n${correctionContext}` : '',
+      ].join('\n'),
+    });
+    console.log(`[BATCH ${batchIndex}] Claude response received: ${result.content.length} characters`);
+  } catch (claudeErr) {
+    console.error(`[BATCH ${batchIndex}] CLAUDE API CALL FAILED`);
+    console.error('Error:', claudeErr);
+    throw new Error(`Claude API call failed for batch ${batchIndex}: ${(claudeErr as Error).message}`);
+  }
+
+  let scored: ScoredArticle[] = [];
+  try {
+    if (!result.content || typeof result.content !== 'string' || result.content.length === 0) {
+      throw new Error(`Claude returned empty or invalid response`);
+    }
+
+    let jsonStr: string | null = null;
+    let workingContent = result.content.trim();
+
+    let extracted = workingContent;
+    const codeBlockPatterns = [
+      /```(?:json)?\s*([\s\S]*?)\s*```/,
+    ];
+    for (const pattern of codeBlockPatterns) {
+      const match = extracted.match(pattern);
+      if (match && match[1]) {
+        extracted = match[1].trim();
+        break;
+      }
+    }
+
+    const firstBracket = extracted.indexOf('[');
+    const lastBracket = extracted.lastIndexOf(']');
+
+    if (firstBracket >= 0 && lastBracket > firstBracket) {
+      jsonStr = extracted.substring(firstBracket, lastBracket + 1);
+    }
+
+    if (!jsonStr) {
+      try {
+        const parsed = JSON.parse(extracted);
+        if (Array.isArray(parsed)) {
+          jsonStr = extracted;
+        } else if (parsed && typeof parsed === 'object') {
+          const obj = parsed as Record<string, unknown>;
+          if (Array.isArray(obj.articles)) {
+            jsonStr = JSON.stringify(obj.articles);
+          } else if (Array.isArray(obj.results)) {
+            jsonStr = JSON.stringify(obj.results);
+          } else if (Array.isArray(obj.data)) {
+            jsonStr = JSON.stringify(obj.data);
+          } else if (Array.isArray(obj.scored)) {
+            jsonStr = JSON.stringify(obj.scored);
+          }
+        }
+      } catch { /* ignore */ }
+    }
+
+    if (!jsonStr) {
+      const preview = result.content.slice(0, 500).replace(/\n/g, ' ').replace(/\s+/g, ' ');
+      throw new Error(`No JSON array found. Response length: ${result.content.length}`);
+    }
+
+    let parsed2: unknown;
+    try {
+      parsed2 = JSON.parse(jsonStr);
+    } catch (parseErr) {
+      throw new Error(`JSON parse error: ${(parseErr as Error).message}`);
+    }
+
+    if (!Array.isArray(parsed2)) {
+      throw new Error(`Response is not an array`);
+    }
+
+    scored = parsed2.map((item: Record<string, unknown>) => {
+      const authorName = String(item.author || '');
+      const scoreTier = item.scoreTier as ScoredArticle['scoreTier'] | undefined;
+      const validTiers = ['High', 'Medium', 'Low', 'Discard'];
+      return {
+        headline: String(item.headline || ''),
+        url: String(item.url || ''),
+        outlet: String(item.outlet || ''),
+        author: authorName,
+        publishDate: String(item.publishDate || ''),
+        uvm: String(item.uvm || ''),
+        scoreTier: validTiers.includes(scoreTier || '') ? (scoreTier as ScoredArticle['scoreTier']) : 'Low',
+        articleType: String(item.articleType || ''),
+        competitorProperty: String(item.competitorProperty || ''),
+        scoringExplanation: String(item.scoringExplanation || ''),
+        pitchAngle: String(item.pitchAngle || ''),
+        syndicationCount: Number(item.syndicationCount) || 0,
+        knownContact: isKnownAuthor(authorName),
+        isCanonical: item.isCanonical !== false,
+      } satisfies ScoredArticle;
+    });
+  } catch (e) {
+    const errorMsg = (e as Error).message;
+    console.error(`[BATCH ${batchIndex}] SCORING ERROR: ${errorMsg}`);
+    scored = batchArticles.map(a => ({
+      ...a,
+      scoreTier: 'Low' as const,
+      articleType: '',
+      competitorProperty: '',
+      scoringExplanation: `Batch scoring error — defaulted to Low`,
+      pitchAngle: '',
+      syndicationCount: 0,
+      knownContact: isKnownAuthor(a.author),
+      isCanonical: true,
+    }));
+  }
+  return scored;
+}
+
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   try {
@@ -142,220 +313,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .filter(Boolean)
     );
 
-    function isKnownAuthor(authorName: string): boolean {
-      const author = authorName.toLowerCase().trim();
-      if (!author) return false;
-
-      // Exact full name match
-      if (mediaNames.has(author)) return true;
-
-      // Check last name match (last word of author name)
-      const authorParts = author.split(/\s+/);
-      const authorLast = authorParts[authorParts.length - 1];
-
-      // Check if any media contact's last name (last word) matches
-      return Array.from(mediaNames).some(contactName => {
-        const contactParts = contactName.split(/\s+/);
-        const contactLast = contactParts[contactParts.length - 1];
-        return authorLast === contactLast;
-      });
+    const BATCH_SIZE = 75;
+    const batches = [];
+    for (let i = 0; i < articles.length; i += BATCH_SIZE) {
+      batches.push(articles.slice(i, i + BATCH_SIZE));
     }
 
-    const articlesText = articles.map((a, i) =>
-      `${i + 1}. Headline: "${a.headline}" | Outlet: ${a.outlet} | Author: ${a.author} | UVM: ${a.uvm} | URL: ${a.url} | Date: ${a.publishDate}`
-    ).join('\n');
+    console.log(`Scoring ${articles.length} articles in ${batches.length} batches of max ${BATCH_SIZE}...`);
 
-    const userPrompt = `You are scoring ${articles.length} golf/travel media articles.
+    const batchResults = await Promise.all(
+      batches.map((batch, idx) => scoreBatch(batch, idx + 1, correctionContext, mediaNames))
+    );
 
-ARTICLES TO SCORE:
-${articlesText}
-
-TASK: Return a JSON array. One object per article. No other text, no markdown.
-
-REQUIRED FIELDS (exact order):
-{
-  "index": number (1-based),
-  "headline": string,
-  "url": string,
-  "outlet": string,
-  "author": string,
-  "publishDate": string,
-  "uvm": string,
-  "scoreTier": "High" | "Medium" | "Low" | "Discard",
-  "articleType": string,
-  "competitorProperty": string,
-  "scoringExplanation": string,
-  "pitchAngle": string,
-  "syndicationCount": number,
-  "isCanonical": boolean
-}
-
-START JSON ARRAY NOW:`;
-
-    let result;
-    try {
-      console.log(`Calling Claude with ${articles.length} articles...`);
-      result = await callClaude({
-        userPrompt,
-        contextString: [
-          OMNI_SCORING_PROMPT,
-          correctionContext ? `\nSCORING CORRECTIONS:\n${correctionContext}` : '',
-        ].join('\n'),
-      });
-      console.log(`Claude response received: ${result.content.length} characters`);
-    } catch (claudeErr) {
-      console.error('=== CLAUDE API CALL FAILED ===');
-      console.error('Error during callClaude:', claudeErr);
-      console.error('=== END CLAUDE API CALL FAILED ===');
-      throw new Error(`Claude API call failed: ${(claudeErr as Error).message}`);
-    }
-
-    let scored: ScoredArticle[] = [];
-    try {
-      if (!result.content || typeof result.content !== 'string' || result.content.length === 0) {
-        throw new Error(`Claude returned empty or invalid response: "${result.content}"`);
-      }
-
-      let jsonStr: string | null = null;
-      let workingContent = result.content.trim();
-
-      console.log(`[SCORE DEBUG] Starting JSON extraction. Response length: ${result.content.length}`);
-      console.log(`[SCORE DEBUG] First 100 chars: ${result.content.slice(0, 100)}`);
-
-      // Strategy 1: Remove markdown code blocks if present (handles both ```json and ```)
-      let extracted = workingContent;
-      const codeBlockPatterns = [
-        /```(?:json)?\s*([\s\S]*?)\s*```/,  // Match any whitespace, not just newlines
-      ];
-      for (const pattern of codeBlockPatterns) {
-        const match = extracted.match(pattern);
-        console.log(`[SCORE DEBUG] Code block regex test:`, !!match);
-        if (match && match[1]) {
-          console.log(`[SCORE DEBUG] Code block matched! Extracted ${match[1].length} chars`);
-          extracted = match[1].trim();
-          break;
-        }
-      }
-
-      console.log(`[SCORE DEBUG] After code block extraction. Extracted length: ${extracted.length}`);
-      console.log(`[SCORE DEBUG] First 100 of extracted: ${extracted.slice(0, 100)}`);
-
-      // Strategy 2: Extract JSON array by brackets (this is most reliable)
-      const firstBracket = extracted.indexOf('[');
-      const lastBracket = extracted.lastIndexOf(']');
-
-      console.log(`[SCORE DEBUG] Bracket search: firstBracket=${firstBracket}, lastBracket=${lastBracket}`);
-
-      if (firstBracket >= 0 && lastBracket > firstBracket) {
-        jsonStr = extracted.substring(firstBracket, lastBracket + 1);
-        console.log(`[SCORE DEBUG] Bracket extraction successful. JSON length: ${jsonStr.length}`);
-      } else {
-        console.log(`[SCORE DEBUG] Bracket extraction failed. Conditions: firstBracket >= 0? ${firstBracket >= 0}, lastBracket > firstBracket? ${lastBracket > firstBracket}`);
-      }
-
-      // Strategy 3: Try to parse entire content as JSON (handles objects with wrapper fields)
-      if (!jsonStr) {
-        console.log(`[SCORE DEBUG] Trying full JSON parse...`);
-        try {
-          const parsed = JSON.parse(extracted);
-          console.log(`[SCORE DEBUG] JSON parse succeeded. Type: ${typeof parsed}, isArray: ${Array.isArray(parsed)}`);
-          if (Array.isArray(parsed)) {
-            jsonStr = extracted;
-            console.log(`[SCORE DEBUG] Direct array parse successful`);
-          } else if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-            const obj = parsed as Record<string, unknown>;
-            // Try common wrapper fields
-            if (Array.isArray(obj.articles)) {
-              jsonStr = JSON.stringify(obj.articles);
-              console.log(`[SCORE DEBUG] Found articles wrapper`);
-            } else if (Array.isArray(obj.results)) {
-              jsonStr = JSON.stringify(obj.results);
-              console.log(`[SCORE DEBUG] Found results wrapper`);
-            } else if (Array.isArray(obj.data)) {
-              jsonStr = JSON.stringify(obj.data);
-              console.log(`[SCORE DEBUG] Found data wrapper`);
-            } else if (Array.isArray(obj.scored)) {
-              jsonStr = JSON.stringify(obj.scored);
-              console.log(`[SCORE DEBUG] Found scored wrapper`);
-            }
-          }
-        } catch (e) {
-          console.log(`[SCORE DEBUG] JSON parse failed: ${(e as Error).message}`);
-        }
-      }
-
-      console.log(`[SCORE DEBUG] Final jsonStr status: ${jsonStr ? 'FOUND (' + jsonStr.length + ' chars)' : 'NOT FOUND'}`);
-
-      if (!jsonStr) {
-        const preview = result.content.slice(0, 500).replace(/\n/g, ' ').replace(/\s+/g, ' ');
-        throw new Error(`No JSON array found. Response length: ${result.content.length}. Content: "${preview}"`);
-      }
-
-      let parsed2: unknown;
-      try {
-        parsed2 = JSON.parse(jsonStr);
-      } catch (parseErr) {
-        throw new Error(`JSON parse error: ${(parseErr as Error).message}. String: "${jsonStr.slice(0, 200)}"`);
-      }
-
-      if (!Array.isArray(parsed2)) {
-        throw new Error(`Response is not an array. Type: ${typeof parsed2}`);
-      }
-      if (parsed2.length === 0) {
-        throw new Error(`Response array is empty`);
-      }
-
-      parsed = parsed2;
-
-      scored = parsed.map((item: Record<string, unknown>) => {
-        const authorName = String(item.author || '');
-        const scoreTier = item.scoreTier as ScoredArticle['scoreTier'] | undefined;
-        const validTiers = ['High', 'Medium', 'Low', 'Discard'];
-        if (!validTiers.includes(scoreTier || '')) {
-          console.warn(`Invalid scoreTier "${scoreTier}", defaulting to Low`);
-        }
-        return {
-          headline: String(item.headline || ''),
-          url: String(item.url || ''),
-          outlet: String(item.outlet || ''),
-          author: authorName,
-          publishDate: String(item.publishDate || ''),
-          uvm: String(item.uvm || ''),
-          scoreTier: validTiers.includes(scoreTier || '') ? (scoreTier as ScoredArticle['scoreTier']) : 'Low',
-          articleType: String(item.articleType || ''),
-          competitorProperty: String(item.competitorProperty || ''),
-          scoringExplanation: String(item.scoringExplanation || ''),
-          pitchAngle: String(item.pitchAngle || ''),
-          syndicationCount: Number(item.syndicationCount) || 0,
-          knownContact: isKnownAuthor(authorName),
-          isCanonical: item.isCanonical !== false,
-        } satisfies ScoredArticle;
-      });
-    } catch (e) {
-      const errorMsg = (e as Error).message;
-      console.error('=== SCORING ERROR ===');
-      console.error('Error:', errorMsg);
-      console.error('Response type:', typeof result.content);
-      console.error('Response length:', result.content?.length || 0);
-      console.error('Full response:');
-      console.error(result.content);
-      console.error('=== END SCORING ERROR ===');
-      scored = articles.map(a => ({
-        ...a,
-        scoreTier: 'Low' as const,
-        articleType: '',
-        competitorProperty: '',
-        scoringExplanation: 'Scoring parse error — defaulted to Low',
-        pitchAngle: '',
-        syndicationCount: 0,
-        knownContact: isKnownAuthor(a.author),
-        isCanonical: true,
-      }));
-    }
+    let scored = batchResults.flat();
 
     // Validate HIGH tier articles against actual content
     const highArticles = scored.filter(a => a.scoreTier === 'High');
     if (highArticles.length > 0) {
+      console.log(`Validating ${highArticles.length} HIGH-tier articles...`);
       const validationTexts = await Promise.all(
         highArticles.map(async (a) => ({
           article: a,
