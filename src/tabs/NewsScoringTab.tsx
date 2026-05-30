@@ -44,8 +44,15 @@ export default function NewsScoringTab({ onScoringComplete }: Props) {
       formData.append('file', file);
       const importRes = await fetch('/api/muckrack-import', { method: 'POST', body: formData });
       if (!importRes.ok) {
-        const b = await importRes.json().catch(() => ({}));
-        const msg = b.details ? `${b.error} — ${b.details}` : (b.error ?? `Import failed (${importRes.status})`);
+        let msg = `Import failed (${importRes.status})`;
+        try {
+          const b = await importRes.json();
+          if (typeof b.error === 'string') {
+            msg = b.details && typeof b.details === 'string' ? `${b.error} — ${b.details}` : b.error;
+          }
+        } catch {
+          // Keep default message if JSON parsing fails
+        }
         throw new Error(msg);
       }
       const { articles: parsed } = await importRes.json();

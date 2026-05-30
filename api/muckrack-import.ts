@@ -149,6 +149,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     return res.json({ articles, totalRows: rawRows.length, parsedRows: articles.length });
   } catch (e) {
-    return res.status(500).json({ error: (e as Error).message });
+    const errorMsg = e instanceof Error
+      ? e.message
+      : typeof e === 'string'
+        ? e
+        : JSON.stringify(e).slice(0, 200) || 'Unknown error';
+    console.error('[muckrack-import] Error:', errorMsg, e);
+    return res.status(500).json({ error: errorMsg });
   }
 }
