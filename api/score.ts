@@ -222,13 +222,11 @@ START JSON ARRAY NOW:`;
       // Strategy 1: Remove markdown code blocks if present (handles both ```json and ```)
       let extracted = workingContent;
       const codeBlockPatterns = [
-        /```json\n?([\s\S]*?)\n?```/,
-        /```\n?([\s\S]*?)\n?```/,
-        /```([\s\S]*?)```/,
+        /```(?:json)?\s*([\s\S]*?)\s*```/,  // Match any whitespace, not just newlines
       ];
       for (const pattern of codeBlockPatterns) {
         const match = extracted.match(pattern);
-        if (match) {
+        if (match && match[1]) {
           extracted = match[1].trim();
           break;
         }
