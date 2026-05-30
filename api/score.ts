@@ -219,6 +219,9 @@ START JSON ARRAY NOW:`;
       let jsonStr: string | null = null;
       let workingContent = result.content.trim();
 
+      console.log(`[SCORE DEBUG] Starting JSON extraction. Response length: ${result.content.length}`);
+      console.log(`[SCORE DEBUG] First 100 chars: ${result.content.slice(0, 100)}`);
+
       // Strategy 1: Remove markdown code blocks if present (handles both ```json and ```)
       let extracted = workingContent;
       const codeBlockPatterns = [
@@ -226,43 +229,62 @@ START JSON ARRAY NOW:`;
       ];
       for (const pattern of codeBlockPatterns) {
         const match = extracted.match(pattern);
+        console.log(`[SCORE DEBUG] Code block regex test:`, !!match);
         if (match && match[1]) {
+          console.log(`[SCORE DEBUG] Code block matched! Extracted ${match[1].length} chars`);
           extracted = match[1].trim();
           break;
         }
       }
 
+      console.log(`[SCORE DEBUG] After code block extraction. Extracted length: ${extracted.length}`);
+      console.log(`[SCORE DEBUG] First 100 of extracted: ${extracted.slice(0, 100)}`);
+
       // Strategy 2: Extract JSON array by brackets (this is most reliable)
       const firstBracket = extracted.indexOf('[');
       const lastBracket = extracted.lastIndexOf(']');
 
+      console.log(`[SCORE DEBUG] Bracket search: firstBracket=${firstBracket}, lastBracket=${lastBracket}`);
+
       if (firstBracket >= 0 && lastBracket > firstBracket) {
         jsonStr = extracted.substring(firstBracket, lastBracket + 1);
+        console.log(`[SCORE DEBUG] Bracket extraction successful. JSON length: ${jsonStr.length}`);
+      } else {
+        console.log(`[SCORE DEBUG] Bracket extraction failed. Conditions: firstBracket >= 0? ${firstBracket >= 0}, lastBracket > firstBracket? ${lastBracket > firstBracket}`);
       }
 
       // Strategy 3: Try to parse entire content as JSON (handles objects with wrapper fields)
       if (!jsonStr) {
+        console.log(`[SCORE DEBUG] Trying full JSON parse...`);
         try {
           const parsed = JSON.parse(extracted);
+          console.log(`[SCORE DEBUG] JSON parse succeeded. Type: ${typeof parsed}, isArray: ${Array.isArray(parsed)}`);
           if (Array.isArray(parsed)) {
             jsonStr = extracted;
+            console.log(`[SCORE DEBUG] Direct array parse successful`);
           } else if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
             const obj = parsed as Record<string, unknown>;
             // Try common wrapper fields
             if (Array.isArray(obj.articles)) {
               jsonStr = JSON.stringify(obj.articles);
+              console.log(`[SCORE DEBUG] Found articles wrapper`);
             } else if (Array.isArray(obj.results)) {
               jsonStr = JSON.stringify(obj.results);
+              console.log(`[SCORE DEBUG] Found results wrapper`);
             } else if (Array.isArray(obj.data)) {
               jsonStr = JSON.stringify(obj.data);
+              console.log(`[SCORE DEBUG] Found data wrapper`);
             } else if (Array.isArray(obj.scored)) {
               jsonStr = JSON.stringify(obj.scored);
+              console.log(`[SCORE DEBUG] Found scored wrapper`);
             }
           }
-        } catch {
-          // Will handle error below
+        } catch (e) {
+          console.log(`[SCORE DEBUG] JSON parse failed: ${(e as Error).message}`);
         }
       }
+
+      console.log(`[SCORE DEBUG] Final jsonStr status: ${jsonStr ? 'FOUND (' + jsonStr.length + ' chars)' : 'NOT FOUND'}`);
 
       if (!jsonStr) {
         const preview = result.content.slice(0, 500).replace(/\n/g, ' ').replace(/\s+/g, ' ');
