@@ -81,7 +81,25 @@ GOLF-FORWARD PITCH FILTER:
 
 SYNDICATION DEDUPLICATION: Group by normalized headline (first 60 chars) + author. Wire content with no author groups on headline alone. Canonical = highest UVM in cluster. Set syndicationCount on canonical.
 
-COMPETITOR PROPERTIES TO WATCH: Pebble Beach, Pinehurst, Kiawah Island, Sea Island, Streamsong, Bandon Dunes, TPC Sawgrass, Kohler (Whistling Straits/Blackwolf Run).
+COMPETITOR PROPERTIES TO WATCH:
+
+Omni Golf Collection (All Properties) Competitors:
+Streamsong, Destination Kohler, Pinehurst Resort, Cabot, Bandon Dunes, Kiawah Island Golf Resort
+
+Omni PGA Frisco Specific Competitors:
+Horseshoe Bay Resort, Lajitas Golf Resort, The Woodlands Resort, Streamsong Resort, Kiawah Island Golf Resort, Destination Kohler
+
+Omni Barton Creek Specific Competitors:
+Horseshoe Bay Resort, Tapatio Springs Hill Country Resort, La Cantera Resort, JW Marriott San Antonio Hill Country Resort & Spa, The Woodlands Resort, Lajitas Golf Resort
+
+Omni La Costa Specific Competitors:
+The Resort at Pelican Hill, Terranea Resort, Torrey Pines, Park Hyatt Aviara, La Quinta Resort & Club
+
+Omni Amelia Island Specific Competitors:
+The Ritz-Carlton Amelia Island, Sea Island Resort, Streamsong, Kiawah Island Golf Resort, PGA National, Innisbrook Resort
+
+Omni Homestead Specific Competitors:
+The Greenbrier, Pinehurst Resort, Nemacolin, Keswick Hall, Salamander Resort & Spa
 
 OMNI GOLF COLLECTION (12 properties):
 1. PGA Frisco (Frisco, TX) — PGA of America HQ campus, Fields Ranch East & West.
@@ -119,8 +137,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       : '';
 
     const mediaNames = new Set(
-      mediaList.map(m => `${(m['First'] || '').toLowerCase()} ${(m['Last'] || '').toLowerCase()}`.trim())
+      mediaList
+        .map(m => (m['Name'] || '').toLowerCase().trim())
+        .filter(Boolean)
     );
+
+    function isKnownAuthor(authorName: string): boolean {
+      const author = authorName.toLowerCase().trim();
+      if (!author) return false;
+
+      // Exact full name match
+      if (mediaNames.has(author)) return true;
+
+      // Check last name match (last word of author name)
+      const authorParts = author.split(/\s+/);
+      const authorLast = authorParts[authorParts.length - 1];
+
+      // Check if any media contact's last name (last word) matches
+      return Array.from(mediaNames).some(contactName => {
+        const contactParts = contactName.split(/\s+/);
+        const contactLast = contactParts[contactParts.length - 1];
+        return authorLast === contactLast;
+      });
+    }
 
     const articlesText = articles.map((a, i) =>
       `${i + 1}. Headline: "${a.headline}" | Outlet: ${a.outlet} | Author: ${a.author} | UVM: ${a.uvm} | URL: ${a.url} | Date: ${a.publishDate}`
@@ -169,7 +208,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       scored = parsed.map((item: Record<string, unknown>) => {
-        const authorName = String(item.author || '').toLowerCase();
+        const authorName = String(item.author || '');
         const scoreTier = item.scoreTier as ScoredArticle['scoreTier'] | undefined;
         const validTiers = ['High', 'Medium', 'Low', 'Discard'];
         if (!validTiers.includes(scoreTier || '')) {
@@ -179,7 +218,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           headline: String(item.headline || ''),
           url: String(item.url || ''),
           outlet: String(item.outlet || ''),
-          author: String(item.author || ''),
+          author: authorName,
           publishDate: String(item.publishDate || ''),
           uvm: String(item.uvm || ''),
           scoreTier: validTiers.includes(scoreTier || '') ? (scoreTier as ScoredArticle['scoreTier']) : 'Low',
@@ -188,7 +227,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           scoringExplanation: String(item.scoringExplanation || ''),
           pitchAngle: String(item.pitchAngle || ''),
           syndicationCount: Number(item.syndicationCount) || 0,
-          knownContact: mediaNames.has(authorName),
+          knownContact: isKnownAuthor(authorName),
           isCanonical: item.isCanonical !== false,
         } satisfies ScoredArticle;
       });
@@ -203,7 +242,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         scoringExplanation: 'Scoring parse error — defaulted to Low',
         pitchAngle: '',
         syndicationCount: 0,
-        knownContact: false,
+        knownContact: isKnownAuthor(a.author),
         isCanonical: true,
       }));
     }
