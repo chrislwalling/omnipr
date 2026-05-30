@@ -46,8 +46,11 @@ export default function MediaTab({ onWritePitch }: Props) {
 
       const rows: MediaContact[] = (mediaData.rows || []).map(
         (r: Record<string, string>, i: number) => {
-          const firstName = r['First'] || '';
-          const lastName = r['Last'] || '';
+          const name = r['Name'] || '';
+          const nameParts = name.split(/\s+/);
+          const firstName = nameParts[0] || '';
+          const lastName = nameParts.slice(1).join(' ') || '';
+
           const journalistPitches = pitches.filter(
             p => p.journalistFirst === firstName && p.journalistLast === lastName
           );
@@ -59,8 +62,7 @@ export default function MediaTab({ onWritePitch }: Props) {
 
           return {
             outlet: r['Outlet'] || '',
-            first: firstName,
-            last: lastName,
+            name: name,
             contact: r['Contact'] || '',
             newContact: r['New Contact'] || '',
             sourceArticleUrl: r['Source Article URL'] || '',
@@ -85,7 +87,7 @@ export default function MediaTab({ onWritePitch }: Props) {
     if (!search) return true;
     const q = search.toLowerCase();
     return (
-      `${c.first} ${c.last}`.toLowerCase().includes(q) ||
+      c.name.toLowerCase().includes(q) ||
       c.outlet.toLowerCase().includes(q) ||
       c.contact.toLowerCase().includes(q)
     );
@@ -108,8 +110,7 @@ export default function MediaTab({ onWritePitch }: Props) {
           rowIndex: contact.rowIndex,
           values: [
             contact.outlet,
-            contact.first,
-            contact.last,
+            contact.name,
             contact.contact,
             contact.newContact,
             contact.sourceArticleUrl,
@@ -187,24 +188,14 @@ export default function MediaTab({ onWritePitch }: Props) {
                 return (
                   <tr key={realIdx}>
                     <td>
-                      <div className="flex gap-1">
-                        <input
-                          className="border-b text-sm w-16 bg-transparent outline-none focus:border-gold"
-                          style={{ borderColor: '#E5E7EB', color: '#003E52' }}
-                          value={contact.first}
-                          onChange={e => handleFieldChange(realIdx, 'first', e.target.value)}
-                          onBlur={() => handleBlur(contact, realIdx)}
-                          placeholder="First"
-                        />
-                        <input
-                          className="border-b text-sm w-20 bg-transparent outline-none focus:border-gold"
-                          style={{ borderColor: '#E5E7EB', color: '#003E52' }}
-                          value={contact.last}
-                          onChange={e => handleFieldChange(realIdx, 'last', e.target.value)}
-                          onBlur={() => handleBlur(contact, realIdx)}
-                          placeholder="Last"
-                        />
-                      </div>
+                      <input
+                        className="border-b text-sm w-40 bg-transparent outline-none focus:border-gold"
+                        style={{ borderColor: '#E5E7EB', color: '#003E52' }}
+                        value={contact.name}
+                        onChange={e => handleFieldChange(realIdx, 'name', e.target.value)}
+                        onBlur={() => handleBlur(contact, realIdx)}
+                        placeholder="Full name"
+                      />
                     </td>
                     <td>
                       <input
@@ -276,7 +267,7 @@ export default function MediaTab({ onWritePitch }: Props) {
                           className="text-xs px-3 py-1 rounded font-semibold transition-colors"
                           style={{ backgroundColor: '#C8A45A', color: '#003E52' }}
                           onClick={() => onWritePitch({
-                            journalistName: `${contact.first} ${contact.last}`.trim(),
+                            journalistName: contact.name,
                             outlet: contact.outlet,
                             competitorProperty: contact.competitorPropertyCovered,
                             articleHeadline: '',

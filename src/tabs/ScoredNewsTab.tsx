@@ -45,16 +45,13 @@ export default function ScoredNewsTab({ articles, validationNote, onWritePitch, 
   const discardCount = articles.filter(a => a.scoreTier === 'Discard').length;
 
   async function handleAddToMedia(article: ScoredArticle) {
-    const nameParts = article.author.trim().split(' ');
-    const first = nameParts[0] || '';
-    const last = nameParts.slice(1).join(' ') || '';
     await fetch('/api/sheets-write', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         tab: 'Media List',
         rows: [[
-          article.outlet, first, last, '',
+          article.outlet, article.author, '',
           'Yes', article.url, article.competitorProperty,
           article.pitchAngle, new Date().toISOString().split('T')[0],
         ]],

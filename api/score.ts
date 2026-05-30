@@ -136,28 +136,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         ).join('\n')
       : '';
 
-    const mediaContacts = mediaList.map(m => ({
-      first: (m['First'] || '').toLowerCase().trim(),
-      last: (m['Last'] || '').toLowerCase().trim(),
-      fullName: `${(m['First'] || '').toLowerCase()} ${(m['Last'] || '').toLowerCase()}`.toLowerCase().trim(),
-    })).filter(c => c.first || c.last);
+    const mediaNames = new Set(
+      mediaList
+        .map(m => (m['Name'] || '').toLowerCase().trim())
+        .filter(Boolean)
+    );
 
     function isKnownAuthor(authorName: string): boolean {
       const author = authorName.toLowerCase().trim();
       if (!author) return false;
-      const parts = author.split(/\s+/);
-      const authorLast = parts[parts.length - 1];
 
-      return mediaContacts.some(contact => {
-        // Exact full name match
-        if (author === contact.fullName) return true;
-        // Exact match on last name
-        if (authorLast === contact.last) return true;
-        // Last name + first initial match (e.g., "Smith, J" or "J Smith")
-        if (contact.first && authorLast === contact.last && parts[0].toLowerCase().startsWith(contact.first[0])) return true;
-        // Single last name match
-        if (parts.length === 1 && authorLast === contact.last) return true;
-        return false;
+      // Exact full name match
+      if (mediaNames.has(author)) return true;
+
+      // Check last name match (last word of author name)
+      const authorParts = author.split(/\s+/);
+      const authorLast = authorParts[authorParts.length - 1];
+
+      // Check if any media contact's last name (last word) matches
+      return Array.from(mediaNames).some(contactName => {
+        const contactParts = contactName.split(/\s+/);
+        const contactLast = contactParts[contactParts.length - 1];
+        return authorLast === contactLast;
       });
     }
 

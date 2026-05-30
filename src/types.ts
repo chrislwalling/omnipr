@@ -28,8 +28,7 @@ export interface ScoredArticle {
 
 export interface MediaContact {
   outlet: string;
-  first: string;
-  last: string;
+  name: string;
   contact: string;
   newContact: string;
   sourceArticleUrl: string;
