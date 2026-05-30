@@ -1,6 +1,10 @@
 import Anthropic from '@anthropic-ai/sdk';
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const client = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+  maxRetries: 0,   // fail fast on 429; caller handles retry/pacing
+  timeout: 50000,  // 50s hard cap so Vercel function never hangs past maxDuration
+});
 
 export const OMNI_SYSTEM_PROMPT = `You are an AI PR strategist embedded with the Omni Hotels & Resorts PR team.
 You analyze golf and travel media coverage to identify pitch opportunities for the Omni Golf Collection (12 properties).
@@ -14,6 +18,7 @@ Cite course architects, renovation details, rankings, and property-specific diff
 export interface ClaudeCallOptions {
   userPrompt: string;
   contextString: string;
+  maxTokens?: number;
 }
 
 export interface ClaudeResult {
@@ -21,7 +26,7 @@ export interface ClaudeResult {
 }
 
 export async function callClaude(options: ClaudeCallOptions): Promise<ClaudeResult> {
-  const { userPrompt, contextString } = options;
+  const { userPrompt, contextString, maxTokens = 8192 } = options;
 
   try {
     const messages = contextString
@@ -40,7 +45,7 @@ export async function callClaude(options: ClaudeCallOptions): Promise<ClaudeResu
 
     const response = await client.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 64000,
+      max_tokens: maxTokens,
       system: OMNI_SYSTEM_PROMPT,
       messages,
     });

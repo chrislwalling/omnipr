@@ -155,12 +155,14 @@ START JSON ARRAY NOW:`;
   let result;
   try {
     console.log(`[BATCH ${batchIndex}] Calling Claude with ${batchArticles.length} articles...`);
+    // 10 articles × ~350 tokens ≈ 3,500 tokens; cap at 4096 to keep response fast
     result = await callClaude({
       userPrompt,
       contextString: [
         OMNI_SCORING_PROMPT,
         correctionContext ? `\nSCORING CORRECTIONS:\n${correctionContext}` : '',
       ].join('\n'),
+      maxTokens: 4096,
     });
     console.log(`[BATCH ${batchIndex}] Claude response received: ${result.content.length} characters`);
   } catch (claudeErr) {
@@ -305,16 +307,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const scored = await scoreBatch(articles, 1, correctionContext, mediaNames);
 
     const uploadDate = today();
-    try {
-      await appendToSheet('Scored Articles Log', scored.map(a => [
-        a.headline, a.url, a.author, a.outlet, a.uvm,
-        a.articleType, a.scoreTier, a.competitorProperty,
-        a.scoringExplanation, a.pitchAngle,
-        String(a.syndicationCount),
-        a.knownContact ? 'Yes' : 'No',
-        uploadDate,
-      ]));
-    } catch { /* non-fatal */ }
+    // Non-blocking — don't await so Sheets latency doesn't add to response time
+    appendToSheet('Scored Articles Log', scored.map(a => [
+      a.headline, a.url, a.author, a.outlet, a.uvm,
+      a.articleType, a.scoreTier, a.competitorProperty,
+      a.scoringExplanation, a.pitchAngle,
+      String(a.syndicationCount),
+      a.knownContact ? 'Yes' : 'No',
+      uploadDate,
+    ])).catch(() => {});
 
     const counts = scored.reduce(
       (acc, a) => {

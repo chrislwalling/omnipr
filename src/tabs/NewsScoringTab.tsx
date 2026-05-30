@@ -60,7 +60,7 @@ export default function NewsScoringTab({ onScoringComplete }: Props) {
 
       // Batch articles client-side: 20 per call, 30s gap between calls to stay
       // under the 8K output-token/min org rate limit.
-      const SCORE_BATCH = 20;
+      const SCORE_BATCH = 10;
       const batches: ArticleInput[][] = [];
       for (let i = 0; i < parsed.length; i += SCORE_BATCH) {
         batches.push(parsed.slice(i, i + SCORE_BATCH));
