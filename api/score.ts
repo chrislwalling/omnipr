@@ -178,14 +178,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let scored: ScoredArticle[] = [];
     try {
       let jsonStr: string | null = null;
-      let workingContent = result.content;
+      let workingContent = result.content.trim();
 
-      // Remove markdown code blocks if present
+      // Strategy 1: Remove markdown code blocks if present
       const codeBlockMatch = workingContent.match(/```(?:json)?\s*([\s\S]*?)```/);
       if (codeBlockMatch) {
-        workingContent = codeBlockMatch[1];
+        workingContent = codeBlockMatch[1].trim();
       }
 
+      // Strategy 2: Find and extract JSON array (most reliable)
       const firstBracket = workingContent.indexOf('[');
       const lastBracket = workingContent.lastIndexOf(']');
 
@@ -193,13 +194,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         jsonStr = workingContent.substring(firstBracket, lastBracket + 1);
       }
 
+      // Strategy 3: If nothing found, try to parse the entire content as JSON
       if (!jsonStr) {
-        throw new Error(`No JSON array found in response. Response preview: ${result.content.slice(0, 200)}`);
+        try {
+          JSON.parse(workingContent);
+          jsonStr = workingContent;
+        } catch {
+          // Continue to error
+        }
+      }
+
+      if (!jsonStr) {
+        throw new Error(`No JSON array found in response (length: ${result.content.length}). First 300 chars: ${result.content.slice(0, 300).replace(/\n/g, ' ')}`);
       }
 
       const parsed = JSON.parse(jsonStr);
-      if (!Array.isArray(parsed) || parsed.length === 0) {
-        throw new Error(`Response is not a non-empty array: ${JSON.stringify(parsed).slice(0, 100)}`);
+      if (!Array.isArray(parsed)) {
+        throw new Error(`Response is not an array. Type: ${typeof parsed}. Content: ${JSON.stringify(parsed).slice(0, 100)}`);
+      }
+      if (parsed.length === 0) {
+        throw new Error(`Response array is empty`);
       }
 
       scored = parsed.map((item: Record<string, unknown>) => {
