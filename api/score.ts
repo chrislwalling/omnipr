@@ -215,23 +215,36 @@ START JSON ARRAY NOW:`;
         workingContent = codeBlockMatch[1].trim();
       }
 
-      // Strategy 2: Find and extract JSON array (most reliable)
-      const firstBracket = workingContent.indexOf('[');
-      const lastBracket = workingContent.lastIndexOf(']');
-
-      if (firstBracket >= 0 && lastBracket > firstBracket) {
-        jsonStr = workingContent.substring(firstBracket, lastBracket + 1);
+      // Strategy 2: Try to parse entire content as JSON (handles objects with "results" or "data" fields)
+      let parsed: unknown = null;
+      try {
+        parsed = JSON.parse(workingContent);
+        if (Array.isArray(parsed)) {
+          jsonStr = workingContent;
+        } else if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          const obj = parsed as Record<string, unknown>;
+          // Try common wrapper fields
+          if (Array.isArray(obj.articles)) {
+            jsonStr = JSON.stringify(obj.articles);
+          } else if (Array.isArray(obj.results)) {
+            jsonStr = JSON.stringify(obj.results);
+          } else if (Array.isArray(obj.data)) {
+            jsonStr = JSON.stringify(obj.data);
+          } else if (Array.isArray(obj.scored)) {
+            jsonStr = JSON.stringify(obj.scored);
+          }
+        }
+      } catch {
+        // Will try bracket extraction next
       }
 
-      // Strategy 3: If nothing found, try to parse the entire content as JSON
+      // Strategy 3: Find and extract JSON array by brackets
       if (!jsonStr) {
-        try {
-          const testParse = JSON.parse(workingContent);
-          if (Array.isArray(testParse)) {
-            jsonStr = workingContent;
-          }
-        } catch {
-          // Continue to error
+        const firstBracket = workingContent.indexOf('[');
+        const lastBracket = workingContent.lastIndexOf(']');
+
+        if (firstBracket >= 0 && lastBracket > firstBracket) {
+          jsonStr = workingContent.substring(firstBracket, lastBracket + 1);
         }
       }
 
@@ -240,19 +253,21 @@ START JSON ARRAY NOW:`;
         throw new Error(`No JSON array found. Response length: ${result.content.length}. Content: "${preview}"`);
       }
 
-      let parsed: unknown;
+      let parsed2: unknown;
       try {
-        parsed = JSON.parse(jsonStr);
+        parsed2 = JSON.parse(jsonStr);
       } catch (parseErr) {
         throw new Error(`JSON parse error: ${(parseErr as Error).message}. String: "${jsonStr.slice(0, 200)}"`);
       }
 
-      if (!Array.isArray(parsed)) {
-        throw new Error(`Response is not an array. Type: ${typeof parsed}`);
+      if (!Array.isArray(parsed2)) {
+        throw new Error(`Response is not an array. Type: ${typeof parsed2}`);
       }
-      if (parsed.length === 0) {
+      if (parsed2.length === 0) {
         throw new Error(`Response array is empty`);
       }
+
+      parsed = parsed2;
 
       scored = parsed.map((item: Record<string, unknown>) => {
         const authorName = String(item.author || '');

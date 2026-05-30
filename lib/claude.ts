@@ -23,26 +23,37 @@ export interface ClaudeResult {
 export async function callClaude(options: ClaudeCallOptions): Promise<ClaudeResult> {
   const { userPrompt, contextString } = options;
 
-  const response = await client.messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 4096,
-    system: OMNI_SYSTEM_PROMPT,
-    messages: [
-      {
-        role: 'user',
-        content: contextString
-          ? `Context:\n${contextString}\n\n${userPrompt}`
-          : userPrompt,
-      },
-    ],
-  });
+  try {
+    const response = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 4096,
+      system: OMNI_SYSTEM_PROMPT,
+      messages: [
+        {
+          role: 'user',
+          content: contextString
+            ? `Context:\n${contextString}\n\n${userPrompt}`
+            : userPrompt,
+        },
+      ],
+    });
 
-  let content = '';
-  for (const block of response.content) {
-    if (block.type === 'text') content += block.text;
+    let content = '';
+    for (const block of response.content) {
+      if (block.type === 'text') {
+        content += block.text;
+      }
+    }
+
+    if (!content || content.length === 0) {
+      throw new Error(`Claude returned empty content. Response has ${response.content.length} blocks`);
+    }
+
+    return { content };
+  } catch (error) {
+    console.error('Claude API error:', error);
+    throw error;
   }
-
-  return { content };
 }
 
 export function generateId(prefix: string): string {
