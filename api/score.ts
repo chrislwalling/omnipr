@@ -145,9 +145,20 @@ ${articlesText}
 
 TASK: Return a JSON array. One object per article. No other text, no markdown.
 
+FIELD DEFINITIONS:
+- index: 1-based position in the list above
+- headline/url/outlet/author/publishDate/uvm: copy from input
+- scoreTier: "High" | "Medium" | "Low" | "Discard" — apply the scoring formula from context (Reach + Article Type + Outlet Tier)
+- articleType: one of "Feature", "Renovation", "Championship", "Rankings", "Brief", "Tee Times", "Press Release", or the most fitting label
+- competitorProperty: if the article covers or prominently mentions a property from the COMPETITOR PROPERTIES list in your context, name it exactly (e.g. "Pinehurst Resort"). If none, use ""
+- scoringExplanation: show the arithmetic — "Reach (X) + Article Type (X) + Outlet Tier (X) = Y. [1 sentence on why]". For Discard, state the discard rule triggered.
+- pitchAngle: if scoreTier is NOT Discard, write 1–2 sentences on how the Omni PR team could use this article as a hook to pitch a specific Omni Golf Collection property. Name the property. If Discard, use "".
+- syndicationCount: 0 unless you detect duplicate headlines; set count on the canonical, 0 on duplicates
+- isCanonical: true unless this article is a lower-UVM duplicate of another in this batch
+
 REQUIRED FIELDS (exact order):
 {
-  "index": number (1-based),
+  "index": number,
   "headline": string,
   "url": string,
   "outlet": string,
