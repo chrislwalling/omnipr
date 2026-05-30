@@ -165,7 +165,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       `${i + 1}. Headline: "${a.headline}" | Outlet: ${a.outlet} | Author: ${a.author} | UVM: ${a.uvm} | URL: ${a.url} | Date: ${a.publishDate}`
     ).join('\n');
 
-    const userPrompt = `Score each of the following ${articles.length} articles for PR value to Omni Hotels & Resorts golf properties.\n\nApply the full scoring spec. Deduplicate syndicated content.\n\nArticles:\n${articlesText}\n\n---\n\nRespond with ONLY a JSON array (no explanatory text, no markdown formatting). One object per UNIQUE article (include Discards). Each object must have:\n- index (1-based, number)\n- headline (string)\n- url (string)\n- outlet (string)\n- author (string)\n- publishDate (string)\n- uvm (string or number)\n- scoreTier (string: "High" | "Medium" | "Low" | "Discard")\n- articleType (string)\n- competitorProperty (string, empty string if none)\n- scoringExplanation (string, 1-2 sentences)\n- pitchAngle (string, empty if Discard or Low)\n- syndicationCount (number)\n- isCanonical (boolean)\n\nOutput only the JSON array, nothing else.`;
+    const userPrompt = `You are scoring ${articles.length} golf/travel media articles.
+
+ARTICLES TO SCORE:
+${articlesText}
+
+TASK: Return a JSON array. One object per article. No other text, no markdown.
+
+REQUIRED FIELDS (exact order):
+{
+  "index": number (1-based),
+  "headline": string,
+  "url": string,
+  "outlet": string,
+  "author": string,
+  "publishDate": string,
+  "uvm": string,
+  "scoreTier": "High" | "Medium" | "Low" | "Discard",
+  "articleType": string,
+  "competitorProperty": string,
+  "scoringExplanation": string,
+  "pitchAngle": string,
+  "syndicationCount": number,
+  "isCanonical": boolean
+}
+
+START JSON ARRAY NOW:`;
 
     const result = await callClaude({
       userPrompt,
@@ -177,6 +202,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     let scored: ScoredArticle[] = [];
     try {
+      if (!result.content || typeof result.content !== 'string' || result.content.length === 0) {
+        throw new Error(`Claude returned empty or invalid response: "${result.content}"`);
+      }
+
       let jsonStr: string | null = null;
       let workingContent = result.content.trim();
 
@@ -197,20 +226,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // Strategy 3: If nothing found, try to parse the entire content as JSON
       if (!jsonStr) {
         try {
-          JSON.parse(workingContent);
-          jsonStr = workingContent;
+          const testParse = JSON.parse(workingContent);
+          if (Array.isArray(testParse)) {
+            jsonStr = workingContent;
+          }
         } catch {
           // Continue to error
         }
       }
 
       if (!jsonStr) {
-        throw new Error(`No JSON array found in response (length: ${result.content.length}). First 300 chars: ${result.content.slice(0, 300).replace(/\n/g, ' ')}`);
+        const preview = result.content.slice(0, 500).replace(/\n/g, ' ').replace(/\s+/g, ' ');
+        throw new Error(`No JSON array found. Response length: ${result.content.length}. Content: "${preview}"`);
       }
 
-      const parsed = JSON.parse(jsonStr);
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(jsonStr);
+      } catch (parseErr) {
+        throw new Error(`JSON parse error: ${(parseErr as Error).message}. String: "${jsonStr.slice(0, 200)}"`);
+      }
+
       if (!Array.isArray(parsed)) {
-        throw new Error(`Response is not an array. Type: ${typeof parsed}. Content: ${JSON.stringify(parsed).slice(0, 100)}`);
+        throw new Error(`Response is not an array. Type: ${typeof parsed}`);
       }
       if (parsed.length === 0) {
         throw new Error(`Response array is empty`);
@@ -241,9 +279,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         } satisfies ScoredArticle;
       });
     } catch (e) {
-      console.error('Scoring parse error:', (e as Error).message);
-      console.error('Full Claude response:', result.content);
-      console.error('Response length:', result.content.length);
+      const errorMsg = (e as Error).message;
+      console.error('=== SCORING ERROR ===');
+      console.error('Error:', errorMsg);
+      console.error('Response type:', typeof result.content);
+      console.error('Response length:', result.content?.length || 0);
+      console.error('Full response:');
+      console.error(result.content);
+      console.error('=== END SCORING ERROR ===');
       scored = articles.map(a => ({
         ...a,
         scoreTier: 'Low' as const,
