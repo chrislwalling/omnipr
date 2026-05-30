@@ -191,20 +191,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let scored: ScoredArticle[] = [];
     try {
       let jsonStr: string | null = null;
-      const firstBracket = result.content.indexOf('[');
-      const lastBracket = result.content.lastIndexOf(']');
+      let workingContent = result.content;
+
+      // Remove markdown code blocks if present
+      const codeBlockMatch = workingContent.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (codeBlockMatch) {
+        workingContent = codeBlockMatch[1];
+      }
+
+      const firstBracket = workingContent.indexOf('[');
+      const lastBracket = workingContent.lastIndexOf(']');
 
       if (firstBracket >= 0 && lastBracket > firstBracket) {
-        jsonStr = result.content.substring(firstBracket, lastBracket + 1);
+        jsonStr = workingContent.substring(firstBracket, lastBracket + 1);
       }
 
       if (!jsonStr) {
-        throw new Error(`No JSON array found in response`);
+        throw new Error(`No JSON array found in response. Response preview: ${result.content.slice(0, 200)}`);
       }
 
       const parsed = JSON.parse(jsonStr);
       if (!Array.isArray(parsed) || parsed.length === 0) {
-        throw new Error(`Response is not a non-empty array: ${parsed}`);
+        throw new Error(`Response is not a non-empty array: ${JSON.stringify(parsed).slice(0, 100)}`);
       }
 
       scored = parsed.map((item: Record<string, unknown>) => {
