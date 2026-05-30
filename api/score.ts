@@ -165,20 +165,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       `${i + 1}. Headline: "${a.headline}" | Outlet: ${a.outlet} | Author: ${a.author} | UVM: ${a.uvm} | URL: ${a.url} | Date: ${a.publishDate}`
     ).join('\n');
 
-    const userPrompt = `Score each of the following ${articles.length} articles for PR value to Omni Hotels & Resorts golf properties.\n\nApply the full scoring spec. Deduplicate syndicated content.\n\nArticles:\n${articlesText}\n\nReturn ONLY a JSON array with one object per UNIQUE article (Discards included with scoreTier: "Discard"). Each object:\n- index (1-based)
-- headline
-- url
-- outlet
-- author
-- publishDate
-- uvm
-- scoreTier: "High" | "Medium" | "Low" | "Discard"
-- articleType: Feature | Renovation | Championship | Rankings | Brief | Tee Times | Other
-- competitorProperty: name of competitor property covered or ""
-- scoringExplanation: 1-2 sentences
-- pitchAngle: specific Omni angle if High or Medium, otherwise ""
-- syndicationCount: number of duplicates (0 if unique)
-- isCanonical: true if this is the record to show`;
+    const userPrompt = `Score each of the following ${articles.length} articles for PR value to Omni Hotels & Resorts golf properties.\n\nApply the full scoring spec. Deduplicate syndicated content.\n\nArticles:\n${articlesText}\n\n---\n\nRespond with ONLY a JSON array (no explanatory text, no markdown formatting). One object per UNIQUE article (include Discards). Each object must have:\n- index (1-based, number)\n- headline (string)\n- url (string)\n- outlet (string)\n- author (string)\n- publishDate (string)\n- uvm (string or number)\n- scoreTier (string: "High" | "Medium" | "Low" | "Discard")\n- articleType (string)\n- competitorProperty (string, empty string if none)\n- scoringExplanation (string, 1-2 sentences)\n- pitchAngle (string, empty if Discard or Low)\n- syndicationCount (number)\n- isCanonical (boolean)\n\nOutput only the JSON array, nothing else.`;
 
     const result = await callClaude({
       userPrompt,
@@ -191,20 +178,42 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let scored: ScoredArticle[] = [];
     try {
       let jsonStr: string | null = null;
-      const firstBracket = result.content.indexOf('[');
-      const lastBracket = result.content.lastIndexOf(']');
+      let workingContent = result.content.trim();
+
+      // Strategy 1: Remove markdown code blocks if present
+      const codeBlockMatch = workingContent.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (codeBlockMatch) {
+        workingContent = codeBlockMatch[1].trim();
+      }
+
+      // Strategy 2: Find and extract JSON array (most reliable)
+      const firstBracket = workingContent.indexOf('[');
+      const lastBracket = workingContent.lastIndexOf(']');
 
       if (firstBracket >= 0 && lastBracket > firstBracket) {
-        jsonStr = result.content.substring(firstBracket, lastBracket + 1);
+        jsonStr = workingContent.substring(firstBracket, lastBracket + 1);
+      }
+
+      // Strategy 3: If nothing found, try to parse the entire content as JSON
+      if (!jsonStr) {
+        try {
+          JSON.parse(workingContent);
+          jsonStr = workingContent;
+        } catch {
+          // Continue to error
+        }
       }
 
       if (!jsonStr) {
-        throw new Error(`No JSON array found in response`);
+        throw new Error(`No JSON array found in response (length: ${result.content.length}). First 300 chars: ${result.content.slice(0, 300).replace(/\n/g, ' ')}`);
       }
 
       const parsed = JSON.parse(jsonStr);
-      if (!Array.isArray(parsed) || parsed.length === 0) {
-        throw new Error(`Response is not a non-empty array: ${parsed}`);
+      if (!Array.isArray(parsed)) {
+        throw new Error(`Response is not an array. Type: ${typeof parsed}. Content: ${JSON.stringify(parsed).slice(0, 100)}`);
+      }
+      if (parsed.length === 0) {
+        throw new Error(`Response array is empty`);
       }
 
       scored = parsed.map((item: Record<string, unknown>) => {
@@ -233,7 +242,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     } catch (e) {
       console.error('Scoring parse error:', (e as Error).message);
-      console.error('Claude response preview:', result.content.slice(0, 500));
+      console.error('Full Claude response:', result.content);
+      console.error('Response length:', result.content.length);
       scored = articles.map(a => ({
         ...a,
         scoreTier: 'Low' as const,
