@@ -81,7 +81,25 @@ GOLF-FORWARD PITCH FILTER:
 
 SYNDICATION DEDUPLICATION: Group by normalized headline (first 60 chars) + author. Wire content with no author groups on headline alone. Canonical = highest UVM in cluster. Set syndicationCount on canonical.
 
-COMPETITOR PROPERTIES TO WATCH: Pebble Beach, Pinehurst, Kiawah Island, Sea Island, Streamsong, Bandon Dunes, TPC Sawgrass, Kohler (Whistling Straits/Blackwolf Run).
+COMPETITOR PROPERTIES TO WATCH:
+
+Omni Golf Collection (All Properties) Competitors:
+Streamsong, Destination Kohler, Pinehurst Resort, Cabot, Bandon Dunes, Kiawah Island Golf Resort
+
+Omni PGA Frisco Specific Competitors:
+Horseshoe Bay Resort, Lajitas Golf Resort, The Woodlands Resort, Streamsong Resort, Kiawah Island Golf Resort, Destination Kohler
+
+Omni Barton Creek Specific Competitors:
+Horseshoe Bay Resort, Tapatio Springs Hill Country Resort, La Cantera Resort, JW Marriott San Antonio Hill Country Resort & Spa, The Woodlands Resort, Lajitas Golf Resort
+
+Omni La Costa Specific Competitors:
+The Resort at Pelican Hill, Terranea Resort, Torrey Pines, Park Hyatt Aviara, La Quinta Resort & Club
+
+Omni Amelia Island Specific Competitors:
+The Ritz-Carlton Amelia Island, Sea Island Resort, Streamsong, Kiawah Island Golf Resort, PGA National, Innisbrook Resort
+
+Omni Homestead Specific Competitors:
+The Greenbrier, Pinehurst Resort, Nemacolin, Keswick Hall, Salamander Resort & Spa
 
 OMNI GOLF COLLECTION (12 properties):
 1. PGA Frisco (Frisco, TX) — PGA of America HQ campus, Fields Ranch East & West.
@@ -119,7 +137,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       : '';
 
     const mediaNames = new Set(
-      mediaList.map(m => `${(m['First'] || '').toLowerCase()} ${(m['Last'] || '').toLowerCase()}`.trim())
+      mediaList.map(m => `${(m['First'] || '').toLowerCase()} ${(m['Last'] || '').toLowerCase()}`.trim()).filter(Boolean)
+    );
+    const authorLastNames = new Set(
+      mediaList.map(m => (m['Last'] || '').toLowerCase()).filter(Boolean)
     );
 
     const articlesText = articles.map((a, i) =>
@@ -169,7 +190,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       scored = parsed.map((item: Record<string, unknown>) => {
-        const authorName = String(item.author || '').toLowerCase();
+        const authorName = String(item.author || '').toLowerCase().trim();
+        const authorLastName = authorName.split(/\s+/).pop() || '';
         const scoreTier = item.scoreTier as ScoredArticle['scoreTier'] | undefined;
         const validTiers = ['High', 'Medium', 'Low', 'Discard'];
         if (!validTiers.includes(scoreTier || '')) {
@@ -188,24 +210,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           scoringExplanation: String(item.scoringExplanation || ''),
           pitchAngle: String(item.pitchAngle || ''),
           syndicationCount: Number(item.syndicationCount) || 0,
-          knownContact: mediaNames.has(authorName),
+          knownContact: mediaNames.has(authorName) || authorLastNames.has(authorLastName),
           isCanonical: item.isCanonical !== false,
         } satisfies ScoredArticle;
       });
     } catch (e) {
       console.error('Scoring parse error:', (e as Error).message);
       console.error('Claude response preview:', result.content.slice(0, 500));
-      scored = articles.map(a => ({
-        ...a,
-        scoreTier: 'Low' as const,
-        articleType: '',
-        competitorProperty: '',
-        scoringExplanation: 'Scoring parse error — defaulted to Low',
-        pitchAngle: '',
-        syndicationCount: 0,
-        knownContact: false,
-        isCanonical: true,
-      }));
+      scored = articles.map(a => {
+        const authorName = a.author.toLowerCase().trim();
+        const authorLastName = authorName.split(/\s+/).pop() || '';
+        return {
+          ...a,
+          scoreTier: 'Low' as const,
+          articleType: '',
+          competitorProperty: '',
+          scoringExplanation: 'Scoring parse error — defaulted to Low',
+          pitchAngle: '',
+          syndicationCount: 0,
+          knownContact: mediaNames.has(authorName) || authorLastNames.has(authorLastName),
+          isCanonical: true,
+        };
+      });
     }
 
     // Validate HIGH tier articles against actual content
