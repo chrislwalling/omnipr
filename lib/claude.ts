@@ -40,7 +40,7 @@ export async function callClaude(options: ClaudeCallOptions): Promise<ClaudeResu
 
     const response = await client.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 16000,
+      max_tokens: 64000,
       system: OMNI_SYSTEM_PROMPT,
       messages,
     });
