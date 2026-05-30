@@ -219,42 +219,50 @@ START JSON ARRAY NOW:`;
       let jsonStr: string | null = null;
       let workingContent = result.content.trim();
 
-      // Strategy 1: Remove markdown code blocks if present
-      const codeBlockMatch = workingContent.match(/```(?:json)?\s*([\s\S]*?)```/);
-      if (codeBlockMatch) {
-        workingContent = codeBlockMatch[1].trim();
-      }
-
-      // Strategy 2: Try to parse entire content as JSON (handles objects with "results" or "data" fields)
-      let parsed: unknown = null;
-      try {
-        parsed = JSON.parse(workingContent);
-        if (Array.isArray(parsed)) {
-          jsonStr = workingContent;
-        } else if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-          const obj = parsed as Record<string, unknown>;
-          // Try common wrapper fields
-          if (Array.isArray(obj.articles)) {
-            jsonStr = JSON.stringify(obj.articles);
-          } else if (Array.isArray(obj.results)) {
-            jsonStr = JSON.stringify(obj.results);
-          } else if (Array.isArray(obj.data)) {
-            jsonStr = JSON.stringify(obj.data);
-          } else if (Array.isArray(obj.scored)) {
-            jsonStr = JSON.stringify(obj.scored);
-          }
+      // Strategy 1: Remove markdown code blocks if present (handles both ```json and ```)
+      let extracted = workingContent;
+      const codeBlockPatterns = [
+        /```json\n?([\s\S]*?)\n?```/,
+        /```\n?([\s\S]*?)\n?```/,
+        /```([\s\S]*?)```/,
+      ];
+      for (const pattern of codeBlockPatterns) {
+        const match = extracted.match(pattern);
+        if (match) {
+          extracted = match[1].trim();
+          break;
         }
-      } catch {
-        // Will try bracket extraction next
       }
 
-      // Strategy 3: Find and extract JSON array by brackets
-      if (!jsonStr) {
-        const firstBracket = workingContent.indexOf('[');
-        const lastBracket = workingContent.lastIndexOf(']');
+      // Strategy 2: Extract JSON array by brackets (this is most reliable)
+      const firstBracket = extracted.indexOf('[');
+      const lastBracket = extracted.lastIndexOf(']');
 
-        if (firstBracket >= 0 && lastBracket > firstBracket) {
-          jsonStr = workingContent.substring(firstBracket, lastBracket + 1);
+      if (firstBracket >= 0 && lastBracket > firstBracket) {
+        jsonStr = extracted.substring(firstBracket, lastBracket + 1);
+      }
+
+      // Strategy 3: Try to parse entire content as JSON (handles objects with wrapper fields)
+      if (!jsonStr) {
+        try {
+          const parsed = JSON.parse(extracted);
+          if (Array.isArray(parsed)) {
+            jsonStr = extracted;
+          } else if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+            const obj = parsed as Record<string, unknown>;
+            // Try common wrapper fields
+            if (Array.isArray(obj.articles)) {
+              jsonStr = JSON.stringify(obj.articles);
+            } else if (Array.isArray(obj.results)) {
+              jsonStr = JSON.stringify(obj.results);
+            } else if (Array.isArray(obj.data)) {
+              jsonStr = JSON.stringify(obj.data);
+            } else if (Array.isArray(obj.scored)) {
+              jsonStr = JSON.stringify(obj.scored);
+            }
+          }
+        } catch {
+          // Will handle error below
         }
       }
 
