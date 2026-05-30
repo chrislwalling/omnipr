@@ -68,7 +68,6 @@ export default function NewsScoringTab({ onScoringComplete }: Props) {
 
       let allScored: ScoredArticle[] = [];
       let counts = { high: 0, medium: 0, low: 0, discarded: 0 };
-      let note: string | undefined;
 
       for (let i = 0; i < batches.length; i++) {
         if (i > 0) {
@@ -106,7 +105,6 @@ export default function NewsScoringTab({ onScoringComplete }: Props) {
           low: counts.low + (scoreData.counts?.low ?? 0),
           discarded: counts.discarded + (scoreData.counts?.discarded ?? 0),
         };
-        note = scoreData.validationNote ?? note;
       }
 
       const scored = allScored;
@@ -131,7 +129,7 @@ export default function NewsScoringTab({ onScoringComplete }: Props) {
 
       setProgress(100);
       setReviewArticles(scored);
-      setReviewValidationNote(note || null);
+      setReviewValidationNote(null);
       setPhase('reviewing');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unexpected error');
