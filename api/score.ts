@@ -192,13 +192,23 @@ REQUIRED FIELDS (exact order):
 
 START JSON ARRAY NOW:`;
 
-    const result = await callClaude({
-      userPrompt,
-      contextString: [
-        OMNI_SCORING_PROMPT,
-        correctionContext ? `\nSCORING CORRECTIONS:\n${correctionContext}` : '',
-      ].join('\n'),
-    });
+    let result;
+    try {
+      console.log(`Calling Claude with ${articles.length} articles...`);
+      result = await callClaude({
+        userPrompt,
+        contextString: [
+          OMNI_SCORING_PROMPT,
+          correctionContext ? `\nSCORING CORRECTIONS:\n${correctionContext}` : '',
+        ].join('\n'),
+      });
+      console.log(`Claude response received: ${result.content.length} characters`);
+    } catch (claudeErr) {
+      console.error('=== CLAUDE API CALL FAILED ===');
+      console.error('Error during callClaude:', claudeErr);
+      console.error('=== END CLAUDE API CALL FAILED ===');
+      throw new Error(`Claude API call failed: ${(claudeErr as Error).message}`);
+    }
 
     let scored: ScoredArticle[] = [];
     try {

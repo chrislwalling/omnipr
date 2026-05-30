@@ -24,34 +24,45 @@ export async function callClaude(options: ClaudeCallOptions): Promise<ClaudeResu
   const { userPrompt, contextString } = options;
 
   try {
+    const messages = contextString
+      ? [
+          {
+            role: 'user' as const,
+            content: `Context:\n${contextString}\n\n${userPrompt}`,
+          },
+        ]
+      : [
+          {
+            role: 'user' as const,
+            content: userPrompt,
+          },
+        ];
+
     const response = await client.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 4096,
       system: OMNI_SYSTEM_PROMPT,
-      messages: [
-        {
-          role: 'user',
-          content: contextString
-            ? `Context:\n${contextString}\n\n${userPrompt}`
-            : userPrompt,
-        },
-      ],
+      messages,
     });
 
     let content = '';
-    for (const block of response.content) {
-      if (block.type === 'text') {
-        content += block.text;
+    if (response.content && Array.isArray(response.content)) {
+      for (const block of response.content) {
+        if (block && block.type === 'text' && 'text' in block) {
+          content += (block as { type: 'text'; text: string }).text;
+        }
       }
     }
 
     if (!content || content.length === 0) {
-      throw new Error(`Claude returned empty content. Response has ${response.content.length} blocks`);
+      throw new Error(`Claude returned empty or no text content. Response: ${JSON.stringify(response)}`);
     }
 
     return { content };
   } catch (error) {
-    console.error('Claude API error:', error);
+    console.error('=== CLAUDE API ERROR ===');
+    console.error('Error:', error);
+    console.error('=== END CLAUDE API ERROR ===');
     throw error;
   }
 }
