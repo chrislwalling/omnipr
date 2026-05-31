@@ -26,7 +26,6 @@ export interface ScoredArticle {
   syndicationCount: number;
   knownContact: boolean;
   isCanonical: boolean;
-  snippet?: string;
 }
 
 export interface MediaContact {

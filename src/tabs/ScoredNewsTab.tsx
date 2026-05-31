@@ -324,16 +324,6 @@ function ArticleCard({
             </a>
           </div>
 
-          {/* Snippet from Muck Rack */}
-          {article.snippet && (
-            <div
-              className="rounded-lg px-4 py-3 text-sm italic"
-              style={{ backgroundColor: '#F8F9FA', borderLeft: '3px solid #E5E7EB', color: '#475569' }}
-            >
-              {article.snippet}
-            </div>
-          )}
-
           {/* Scoring explanation */}
           {article.scoringExplanation && (
             <p className="text-sm" style={{ color: '#475569' }}>{article.scoringExplanation}</p>

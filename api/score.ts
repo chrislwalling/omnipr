@@ -250,11 +250,10 @@ START JSON ARRAY NOW:`;
       throw new Error(`Response is not an array`);
     }
 
-    scored = parsed2.map((item: Record<string, unknown>, idx: number) => {
+    scored = parsed2.map((item: Record<string, unknown>) => {
       const authorName = String(item.author || '');
       const scoreTier = item.scoreTier as ScoredArticle['scoreTier'] | undefined;
       const validTiers = ['High', 'Medium', 'Low', 'Discard'];
-      const originalArticle = batchArticles[(Number(item.index) || idx + 1) - 1];
       return {
         headline: String(item.headline || ''),
         url: String(item.url || ''),
@@ -270,7 +269,6 @@ START JSON ARRAY NOW:`;
         syndicationCount: Number(item.syndicationCount) || 0,
         knownContact: isKnownAuthor(authorName),
         isCanonical: item.isCanonical !== false,
-        snippet: originalArticle?.snippet || '',
       } satisfies ScoredArticle;
     });
   } catch (e) {
@@ -286,7 +284,6 @@ START JSON ARRAY NOW:`;
       syndicationCount: 0,
       knownContact: isKnownAuthor(a.author),
       isCanonical: true,
-      snippet: a.snippet || '',
     }));
   }
   return scored;
@@ -379,7 +376,6 @@ ${articlesWithContent}`;
         String(a.syndicationCount),
         a.knownContact ? 'Yes' : 'No',
         uploadDate,
-        a.snippet || '',
       ]));
     } catch { /* non-fatal */ }
 
