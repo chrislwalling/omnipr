@@ -58,24 +58,46 @@ export default function NewsScoringTab({ onScoringComplete }: Props) {
       const { articles: parsed } = await importRes.json();
       setProgress(50);
 
-      setProgressLabel('Scoring articles with Claude...');
-      setProgress(60);
+      const CHUNK_SIZE = 10;
+      const chunks: typeof parsed[] = [];
+      for (let i = 0; i < parsed.length; i += CHUNK_SIZE) {
+        chunks.push(parsed.slice(i, i + CHUNK_SIZE));
+      }
 
-      const scoreRes = await fetch('/api/score', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ articles: parsed }),
-      });
-      if (!scoreRes.ok) {
-        const b = await scoreRes.json().catch(() => ({}));
-        throw new Error(b.error ?? `Scoring failed (${scoreRes.status})`);
+      const allScored: ScoredArticle[] = [];
+      const allCounts = { high: 0, medium: 0, low: 0, discarded: 0 };
+      let note: string | null = null;
+
+      for (let ci = 0; ci < chunks.length; ci++) {
+        const start = ci * CHUNK_SIZE + 1;
+        const end = Math.min((ci + 1) * CHUNK_SIZE, parsed.length);
+        setProgressLabel(`Scoring articles ${start}–${end} of ${parsed.length}…`);
+        setProgress(60 + Math.round((ci / chunks.length) * 30));
+
+        const scoreRes = await fetch('/api/score', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ articles: chunks[ci] }),
+        });
+        if (!scoreRes.ok) {
+          const b = await scoreRes.json().catch(() => ({}));
+          throw new Error(b.error ?? `Scoring failed (${scoreRes.status})`);
+        }
+        const scoreData = await scoreRes.json();
+        if (!scoreData.scored || !Array.isArray(scoreData.scored)) {
+          console.error('Invalid score response:', scoreData);
+          throw new Error('Scoring returned invalid data structure');
+        }
+        allScored.push(...scoreData.scored);
+        allCounts.high += scoreData.counts?.high ?? 0;
+        allCounts.medium += scoreData.counts?.medium ?? 0;
+        allCounts.low += scoreData.counts?.low ?? 0;
+        allCounts.discarded += scoreData.counts?.discarded ?? 0;
+        if (!note && scoreData.validationNote) note = scoreData.validationNote;
       }
-      const scoreData = await scoreRes.json();
-      if (!scoreData.scored || !Array.isArray(scoreData.scored)) {
-        console.error('Invalid score response:', scoreData);
-        throw new Error('Scoring returned invalid data structure');
-      }
-      const { scored, counts, validationNote: note } = scoreData;
+
+      const scored = allScored;
+      const counts = allCounts;
       if (scored.length === 0) {
         console.warn('No articles in scoring response. Input articles:', parsed.length);
       }

@@ -313,21 +313,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .filter(Boolean)
     );
 
-    const BATCH_SIZE = 30;
-    const batches = [];
-    for (let i = 0; i < articles.length; i += BATCH_SIZE) {
-      batches.push(articles.slice(i, i + BATCH_SIZE));
-    }
-
-    console.log(`Scoring ${articles.length} articles in ${batches.length} batches of max ${BATCH_SIZE}...`);
-
-    const batchResults: ScoredArticle[][] = [];
-    for (let idx = 0; idx < batches.length; idx++) {
-      if (idx > 0) await new Promise(r => setTimeout(r, 2000));
-      batchResults.push(await scoreBatch(batches[idx], idx + 1, correctionContext, mediaNames));
-    }
-
-    let scored = batchResults.flat();
+    console.log(`Scoring ${articles.length} articles...`);
+    let scored = await scoreBatch(articles, 1, correctionContext, mediaNames);
 
     // Validate HIGH tier articles against actual content
     const highArticles = scored.filter(a => a.scoreTier === 'High');
