@@ -7,7 +7,7 @@ import MediaTab from './tabs/MediaTab';
 import PitchesTab from './tabs/PitchesTab';
 import PitchTrackerTab from './tabs/PitchTrackerTab';
 import UsageTab from './tabs/UsageTab';
-import type { PitchContext, ScoredArticle } from './types';
+import type { PitchContext, ScoredArticle, ScoreTier } from './types';
 
 export type TabId = 'news-scoring' | 'scored-news' | 'media' | 'pitches' | 'tracker' | 'usage';
 
@@ -15,13 +15,9 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>('news-scoring');
   const [pitchContext, setPitchContext] = useState<PitchContext | null>(null);
-  const [scoredArticles, setScoredArticles] = useState<ScoredArticle[]>(() => {
-    try {
-      const stored = localStorage.getItem('scored_articles');
-      return stored ? (JSON.parse(stored) as ScoredArticle[]) : [];
-    } catch { return []; }
-  });
+  const [scoredArticles, setScoredArticles] = useState<ScoredArticle[]>([]);
   const [scoringValidationNote, setScoringValidationNote] = useState<string | null>(null);
+  const [isLoadingArticles, setIsLoadingArticles] = useState(false);
 
   useEffect(() => {
     const isAuth = sessionStorage.getItem('dashboard_authenticated') === 'true';
@@ -29,12 +25,37 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (scoredArticles.length > 0) {
-      localStorage.setItem('scored_articles', JSON.stringify(scoredArticles));
-    } else {
-      localStorage.removeItem('scored_articles');
-    }
-  }, [scoredArticles]);
+    if (activeTab !== 'scored-news') return;
+    setIsLoadingArticles(true);
+    fetch('/api/sheets-read', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tab: 'Scored Articles Log', asObjects: true }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        const rows = (data.rows ?? []) as Record<string, string>[];
+        const articles: ScoredArticle[] = rows.map(row => ({
+          headline: row['Headline'] ?? '',
+          url: row['Article URL'] ?? '',
+          author: row['Author'] ?? '',
+          outlet: row['Outlet'] ?? '',
+          publishDate: row['Upload Date'] ?? '',
+          uvm: row['UVM'] ?? '',
+          scoreTier: (row['Score Tier'] as ScoreTier) ?? 'Low',
+          articleType: row['Article Type'] ?? '',
+          competitorProperty: row['Competitor Property'] ?? '',
+          scoringExplanation: row['Scoring Explanation'] ?? '',
+          pitchAngle: row['Pitch Angle'] ?? '',
+          syndicationCount: parseInt(row['Syndication Count'] ?? '0', 10) || 0,
+          knownContact: row['Known Contact'] === 'Yes',
+          isCanonical: true,
+        }));
+        setScoredArticles(articles);
+      })
+      .catch(() => {})
+      .finally(() => setIsLoadingArticles(false));
+  }, [activeTab]);
 
   const handleAuthenticate = () => {
     sessionStorage.setItem('dashboard_authenticated', 'true');
@@ -55,8 +76,7 @@ export default function App() {
     setActiveTab(tab);
   }
 
-  function handleScoringComplete(articles: ScoredArticle[], validationNote: string | null) {
-    setScoredArticles(articles);
+  function handleScoringComplete(_articles: ScoredArticle[], validationNote: string | null) {
     setScoringValidationNote(validationNote);
     setActiveTab('scored-news');
   }
@@ -78,7 +98,7 @@ export default function App() {
         <div style={{ display: activeTab === 'news-scoring' ? 'block' : 'none' }}>
           <NewsScoringTab onScoringComplete={handleScoringComplete} />
         </div>
-        {activeTab === 'scored-news'  && <ScoredNewsTab articles={scoredArticles} validationNote={scoringValidationNote} onWritePitch={navigateToPitches} onNewScoring={handleNewScoring} />}
+        {activeTab === 'scored-news'  && <ScoredNewsTab articles={scoredArticles} validationNote={scoringValidationNote} onWritePitch={navigateToPitches} onNewScoring={handleNewScoring} isLoading={isLoadingArticles} />}
         {activeTab === 'media'        && <MediaTab onWritePitch={navigateToPitches} />}
         {activeTab === 'pitches'      && <PitchesTab initialContext={pitchContext} />}
         {activeTab === 'tracker'      && <PitchTrackerTab />}

@@ -11,9 +11,10 @@ interface Props {
   validationNote: string | null;
   onWritePitch: (ctx: PitchContext) => void;
   onNewScoring: () => void;
+  isLoading?: boolean;
 }
 
-export default function ScoredNewsTab({ articles, validationNote, onWritePitch, onNewScoring }: Props) {
+export default function ScoredNewsTab({ articles, validationNote, onWritePitch, onNewScoring, isLoading }: Props) {
   const [sortField, setSortField] = useState<SortField>('scoreTier');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedScoreTiers, setSelectedScoreTiers] = useState<Set<ScoreTier>>(new Set(['High', 'Medium', 'Low']));
@@ -171,7 +172,11 @@ export default function ScoredNewsTab({ articles, validationNote, onWritePitch, 
         </div>
       </div>
 
-      {displayed.length === 0 ? (
+      {isLoading && articles.length === 0 ? (
+        <div className="text-center py-12">
+          <p style={{ color: '#6B7280' }}>Loading scored articles…</p>
+        </div>
+      ) : displayed.length === 0 ? (
         <div className="text-center py-12">
           <p style={{ color: '#6B7280' }}>
             {searchQuery ? 'No articles match your search.' : selectedScoreTiers.size === 0 ? 'Select a score tier to view articles.' : 'No scored articles yet. Start a new scoring to see results here.'}
