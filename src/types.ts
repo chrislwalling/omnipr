@@ -7,7 +7,9 @@ export interface ArticleInput {
   author: string;
   publishDate: string;
   uvm: string;
+  snippet?: string;
 }
+
 
 export interface ScoredArticle {
   headline: string;

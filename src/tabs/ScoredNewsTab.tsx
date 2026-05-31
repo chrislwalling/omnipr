@@ -232,6 +232,7 @@ function ArticleCard({
   onAddToMedia, onWritePitch,
 }: CardProps) {
   const [addedToMedia, setAddedToMedia] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   async function handleAddToMedia() {
     await onAddToMedia();
@@ -240,27 +241,36 @@ function ArticleCard({
 
   return (
     <div
-      className="rounded-xl p-5 space-y-3"
+      className="rounded-xl overflow-hidden"
       style={{ backgroundColor: '#fff', border: '1px solid #E5E7EB' }}
     >
-      {/* Header row */}
-      <div className="flex items-start justify-between gap-4">
+      {/* Clickable header — always visible */}
+      <button
+        className="w-full text-left px-5 py-4 flex items-start justify-between gap-4 hover:bg-gray-50 transition-colors"
+        onClick={() => setIsExpanded(v => !v)}
+      >
         <div className="flex-1 min-w-0">
-          <a
-            href={article.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-medium hover:underline leading-snug"
+          <span
+            className="font-medium leading-snug block"
             style={{ color: '#003E52', fontFamily: 'Georgia, serif' }}
           >
             {article.headline}
-          </a>
+          </span>
           <div className="flex flex-wrap gap-2 mt-1.5 text-xs" style={{ color: '#6B7280' }}>
             <span>{article.outlet}</span>
             {article.author && <><span>·</span><span>{article.author}</span></>}
             {article.uvm && <><span>·</span><span>UVM: {Number(article.uvm).toLocaleString()}</span></>}
             {article.publishDate && <><span>·</span><span>{article.publishDate}</span></>}
           </div>
+          {/* Competitor pill — visible even when collapsed */}
+          {article.competitorProperty && (
+            <span
+              className="inline-block mt-2 text-xs px-2 py-0.5 rounded-full font-medium"
+              style={{ backgroundColor: 'rgba(200,164,90,0.15)', color: '#8a6a1a' }}
+            >
+              Competitor: {article.competitorProperty}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           <ScoreBadge tier={article.scoreTier} />
@@ -280,110 +290,129 @@ function ArticleCard({
               Syndicated ×{article.syndicationCount}
             </span>
           )}
+          <svg
+            width="16" height="16" fill="none" viewBox="0 0 24 24"
+            stroke="#6B7280" strokeWidth={2}
+            className="transition-transform flex-shrink-0"
+            style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
         </div>
-      </div>
+      </button>
 
-      {/* Details */}
-      <div className="grid grid-cols-2 gap-3 text-xs">
-        {article.articleType && (
-          <div>
-            <span style={{ color: '#6B7280' }}>Type: </span>
-            <span style={{ color: '#003E52' }}>{article.articleType}</span>
-          </div>
-        )}
-        {article.competitorProperty && (
-          <div>
-            <span style={{ color: '#6B7280' }}>Competitor: </span>
-            <span style={{ color: '#003E52' }}>{article.competitorProperty}</span>
-          </div>
-        )}
-      </div>
-
-      {article.scoringExplanation && (
-        <p className="text-sm" style={{ color: '#475569' }}>{article.scoringExplanation}</p>
-      )}
-
-      {article.pitchAngle && (
-        <div
-          className="rounded-lg px-4 py-3 text-sm"
-          style={{ backgroundColor: 'rgba(200,164,90,0.08)', borderLeft: '3px solid #C8A45A' }}
-        >
-          <span className="font-semibold" style={{ color: '#C8A45A' }}>Pitch angle: </span>
-          <span style={{ color: '#003E52' }}>{article.pitchAngle}</span>
-        </div>
-      )}
-
-      {/* Action buttons */}
-      <div className="flex flex-wrap items-center gap-2 pt-1">
-        <button className="btn-primary text-xs px-3 py-1.5" onClick={onWritePitch}>
-          Write Pitch
-        </button>
-        <button
-          className="btn-secondary text-xs px-3 py-1.5"
-          onClick={handleAddToMedia}
-          disabled={addedToMedia}
-          style={{ opacity: addedToMedia ? 0.6 : 1 }}
-        >
-          {addedToMedia ? 'Added ✓' : 'Add to Media List'}
-        </button>
-        <button
-          className="text-xs px-3 py-1.5 rounded border transition-colors"
-          style={{
-            borderColor: correctionOpen ? '#C8A45A' : '#E5E7EB',
-            color: correctionOpen ? '#C8A45A' : '#6B7280',
-          }}
-          onClick={onToggleCorrection}
-        >
-          Scoring Needs Correction?
-        </button>
-      </div>
-
-      {/* Correction form */}
-      {correctionOpen && (
-        <div
-          className="rounded-lg p-4 space-y-3 mt-2"
-          style={{ backgroundColor: '#F8F5F0', border: '1px solid #E5E7EB' }}
-        >
-          <p className="text-xs font-semibold" style={{ color: '#003E52' }}>Submit Scoring Correction</p>
-          <div className="flex gap-3 items-end">
-            <div>
-              <label className="text-xs" style={{ color: '#6B7280' }}>Corrected Score</label>
-              <select
-                value={correctionScore}
-                onChange={e => onCorrectionScore(e.target.value as ScoreTier)}
-                className="block mt-1 border rounded px-3 py-1.5 text-sm"
-                style={{ borderColor: '#E5E7EB', color: '#003E52' }}
-              >
-                <option>High</option>
-                <option>Medium</option>
-                <option>Low</option>
-                <option>Discard</option>
-              </select>
-            </div>
-            <div className="flex-1">
-              <label className="text-xs" style={{ color: '#6B7280' }}>Reason (required)</label>
-              <input
-                type="text"
-                value={correctionReason}
-                onChange={e => onCorrectionReason(e.target.value)}
-                placeholder="Why should this be re-scored?"
-                className="block w-full mt-1 border rounded px-3 py-1.5 text-sm"
-                style={{ borderColor: '#E5E7EB', color: '#003E52' }}
-              />
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <button
-              className="btn-primary text-xs px-3 py-1.5"
-              disabled={!correctionReason.trim() || correctionSubmitting}
-              onClick={onSubmitCorrection}
+      {/* Expanded detail panel */}
+      {isExpanded && (
+        <div className="px-5 pb-5 space-y-3 border-t" style={{ borderColor: '#F3F4F6' }}>
+          {/* Metadata row */}
+          <div className="flex gap-4 pt-3 text-xs">
+            {article.articleType && (
+              <div>
+                <span style={{ color: '#6B7280' }}>Type: </span>
+                <span style={{ color: '#003E52' }}>{article.articleType}</span>
+              </div>
+            )}
+            <a
+              href={article.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:underline"
+              style={{ color: '#6B7280' }}
+              onClick={e => e.stopPropagation()}
             >
-              {correctionSubmitting ? 'Saving...' : 'Submit'}
+              Open article ↗
+            </a>
+          </div>
+
+          {/* Scoring explanation */}
+          {article.scoringExplanation && (
+            <p className="text-sm" style={{ color: '#475569' }}>{article.scoringExplanation}</p>
+          )}
+
+          {/* Pitch angle */}
+          {article.pitchAngle && (
+            <div
+              className="rounded-lg px-4 py-3 text-sm"
+              style={{ backgroundColor: 'rgba(200,164,90,0.08)', borderLeft: '3px solid #C8A45A' }}
+            >
+              <span className="font-semibold" style={{ color: '#C8A45A' }}>Pitch angle: </span>
+              <span style={{ color: '#003E52' }}>{article.pitchAngle}</span>
+            </div>
+          )}
+
+          {/* Action buttons */}
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <button className="btn-primary text-xs px-3 py-1.5" onClick={onWritePitch}>
+              Write Pitch
             </button>
-            <button className="btn-secondary text-xs px-3 py-1.5" onClick={onToggleCorrection}>
-              Cancel
+            <button
+              className="btn-secondary text-xs px-3 py-1.5"
+              onClick={handleAddToMedia}
+              disabled={addedToMedia}
+              style={{ opacity: addedToMedia ? 0.6 : 1 }}
+            >
+              {addedToMedia ? 'Added ✓' : 'Add to Media List'}
+            </button>
+            <button
+              className="text-xs px-3 py-1.5 rounded border transition-colors"
+              style={{
+                borderColor: correctionOpen ? '#C8A45A' : '#E5E7EB',
+                color: correctionOpen ? '#C8A45A' : '#6B7280',
+              }}
+              onClick={onToggleCorrection}
+            >
+              Scoring Needs Correction?
             </button>
           </div>
+
+          {/* Correction form */}
+          {correctionOpen && (
+            <div
+              className="rounded-lg p-4 space-y-3 mt-2"
+              style={{ backgroundColor: '#F8F5F0', border: '1px solid #E5E7EB' }}
+            >
+              <p className="text-xs font-semibold" style={{ color: '#003E52' }}>Submit Scoring Correction</p>
+              <div className="flex gap-3 items-end">
+                <div>
+                  <label className="text-xs" style={{ color: '#6B7280' }}>Corrected Score</label>
+                  <select
+                    value={correctionScore}
+                    onChange={e => onCorrectionScore(e.target.value as ScoreTier)}
+                    className="block mt-1 border rounded px-3 py-1.5 text-sm"
+                    style={{ borderColor: '#E5E7EB', color: '#003E52' }}
+                  >
+                    <option>High</option>
+                    <option>Medium</option>
+                    <option>Low</option>
+                    <option>Discard</option>
+                  </select>
+                </div>
+                <div className="flex-1">
+                  <label className="text-xs" style={{ color: '#6B7280' }}>Reason (required)</label>
+                  <input
+                    type="text"
+                    value={correctionReason}
+                    onChange={e => onCorrectionReason(e.target.value)}
+                    placeholder="Why should this be re-scored?"
+                    className="block w-full mt-1 border rounded px-3 py-1.5 text-sm"
+                    style={{ borderColor: '#E5E7EB', color: '#003E52' }}
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  className="btn-primary text-xs px-3 py-1.5"
+                  disabled={!correctionReason.trim() || correctionSubmitting}
+                  onClick={onSubmitCorrection}
+                >
+                  {correctionSubmitting ? 'Saving...' : 'Submit'}
+                </button>
+                <button className="btn-secondary text-xs px-3 py-1.5" onClick={onToggleCorrection}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

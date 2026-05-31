@@ -81,24 +81,29 @@ GOLF-FORWARD PITCH FILTER:
 
 SYNDICATION DEDUPLICATION: Group by normalized headline (first 60 chars) + author. Wire content with no author groups on headline alone. Canonical = highest UVM in cluster. Set syndicationCount on canonical.
 
-COMPETITOR PROPERTIES TO WATCH:
+COMPETITOR DETECTION (required — read carefully):
+For EACH article, actively scan the headline AND the snippet text for the exact name of any competitor from the lists below.
+- If a competitor name appears anywhere in the article data, set competitorProperty to the exact name (e.g. "The Greenbrier", "Streamsong", "Kiawah Island Golf Resort").
+- If multiple competitors appear, list them comma-separated.
+- If no competitor is found, set competitorProperty to an empty string "".
+- Do NOT skip this field. A competitor mention in the snippet is the primary reason these articles were flagged.
 
-Omni Golf Collection (All Properties) Competitors:
+COMPETITOR PROPERTIES — ALL PROPERTIES:
 Streamsong, Destination Kohler, Pinehurst Resort, Cabot, Bandon Dunes, Kiawah Island Golf Resort
 
-Omni PGA Frisco Specific Competitors:
+COMPETITOR PROPERTIES — PGA FRISCO SPECIFIC:
 Horseshoe Bay Resort, Lajitas Golf Resort, The Woodlands Resort, Streamsong Resort, Kiawah Island Golf Resort, Destination Kohler
 
-Omni Barton Creek Specific Competitors:
+COMPETITOR PROPERTIES — BARTON CREEK SPECIFIC:
 Horseshoe Bay Resort, Tapatio Springs Hill Country Resort, La Cantera Resort, JW Marriott San Antonio Hill Country Resort & Spa, The Woodlands Resort, Lajitas Golf Resort
 
-Omni La Costa Specific Competitors:
+COMPETITOR PROPERTIES — LA COSTA SPECIFIC:
 The Resort at Pelican Hill, Terranea Resort, Torrey Pines, Park Hyatt Aviara, La Quinta Resort & Club
 
-Omni Amelia Island Specific Competitors:
+COMPETITOR PROPERTIES — AMELIA ISLAND SPECIFIC:
 The Ritz-Carlton Amelia Island, Sea Island Resort, Streamsong, Kiawah Island Golf Resort, PGA National, Innisbrook Resort
 
-Omni Homestead Specific Competitors:
+COMPETITOR PROPERTIES — HOMESTEAD SPECIFIC:
 The Greenbrier, Pinehurst Resort, Nemacolin, Keswick Hall, Salamander Resort & Spa
 
 OMNI GOLF COLLECTION (12 properties):
@@ -135,7 +140,7 @@ async function scoreBatch(
   }
 
   const articlesText = batchArticles.map((a, i) =>
-    `${i + 1}. Headline: "${a.headline}" | Outlet: ${a.outlet} | Author: ${a.author} | UVM: ${a.uvm} | URL: ${a.url} | Date: ${a.publishDate}`
+    `${i + 1}. Headline: "${a.headline}" | Outlet: ${a.outlet} | Author: ${a.author} | UVM: ${a.uvm} | URL: ${a.url} | Date: ${a.publishDate}${a.snippet ? ` | Snippet: ${a.snippet}` : ''}`
   ).join('\n');
 
   const userPrompt = `You are scoring ${batchArticles.length} golf/travel media articles (batch ${batchIndex}).
