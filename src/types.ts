@@ -7,7 +7,9 @@ export interface ArticleInput {
   author: string;
   publishDate: string;
   uvm: string;
+  snippet?: string;
 }
+
 
 export interface ScoredArticle {
   headline: string;
@@ -24,6 +26,7 @@ export interface ScoredArticle {
   syndicationCount: number;
   knownContact: boolean;
   isCanonical: boolean;
+  snippet?: string;
 }
 
 export interface MediaContact {
