@@ -54,7 +54,8 @@ export async function callClaude(options: ClaudeCallOptions): Promise<ClaudeResu
 
       return { content };
     } catch (error) {
-      const isRateLimit = error instanceof Anthropic.APIError && error.status === 429;
+      const status = (error as { status?: number }).status;
+      const isRateLimit = status === 429;
       if (isRateLimit && attempts < maxAttempts) {
         attempts++;
         const wait = Math.pow(2, attempts) * 5000; // 10s, 20s, 40s, 80s
