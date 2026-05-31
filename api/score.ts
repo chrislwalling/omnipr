@@ -313,7 +313,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .filter(Boolean)
     );
 
-    const BATCH_SIZE = 75;
+    const BATCH_SIZE = 30;
     const batches = [];
     for (let i = 0; i < articles.length; i += BATCH_SIZE) {
       batches.push(articles.slice(i, i + BATCH_SIZE));
