@@ -190,7 +190,7 @@ export default function NewsScoringTab({ onScoringComplete }: Props) {
           </div>
           <div>
             <p className="text-base font-semibold" style={{ color: '#003E52' }}>{progressLabel}</p>
-            <p className="text-sm mt-1" style={{ color: '#6B7280' }}>This may take 20–60 seconds</p>
+            <p className="text-sm mt-1" style={{ color: '#6B7280' }}>Finding you opportunities to impress Dan Surrette</p>
           </div>
           <div className="rounded-full overflow-hidden" style={{ height: '8px', background: '#E5E7EB' }}>
             <div
