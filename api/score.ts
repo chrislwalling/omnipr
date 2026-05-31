@@ -313,7 +313,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .filter(Boolean)
     );
 
-    const BATCH_SIZE = 75;
+    const BATCH_SIZE = 30;
     const batches = [];
     for (let i = 0; i < articles.length; i += BATCH_SIZE) {
       batches.push(articles.slice(i, i + BATCH_SIZE));
@@ -321,9 +321,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     console.log(`Scoring ${articles.length} articles in ${batches.length} batches of max ${BATCH_SIZE}...`);
 
-    const batchResults = await Promise.all(
-      batches.map((batch, idx) => scoreBatch(batch, idx + 1, correctionContext, mediaNames))
-    );
+    const batchResults: ScoredArticle[][] = [];
+    for (let idx = 0; idx < batches.length; idx++) {
+      if (idx > 0) await new Promise(r => setTimeout(r, 2000));
+      batchResults.push(await scoreBatch(batches[idx], idx + 1, correctionContext, mediaNames));
+    }
 
     let scored = batchResults.flat();
 
