@@ -231,7 +231,6 @@ START JSON ARRAY NOW:`;
     }
 
     if (!jsonStr) {
-      const preview = result.content.slice(0, 500).replace(/\n/g, ' ').replace(/\s+/g, ' ');
       throw new Error(`No JSON array found. Response length: ${result.content.length}`);
     }
 
