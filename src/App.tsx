@@ -15,13 +15,26 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>('news-scoring');
   const [pitchContext, setPitchContext] = useState<PitchContext | null>(null);
-  const [scoredArticles, setScoredArticles] = useState<ScoredArticle[]>([]);
+  const [scoredArticles, setScoredArticles] = useState<ScoredArticle[]>(() => {
+    try {
+      const stored = localStorage.getItem('scored_articles');
+      return stored ? (JSON.parse(stored) as ScoredArticle[]) : [];
+    } catch { return []; }
+  });
   const [scoringValidationNote, setScoringValidationNote] = useState<string | null>(null);
 
   useEffect(() => {
     const isAuth = sessionStorage.getItem('dashboard_authenticated') === 'true';
     setIsAuthenticated(isAuth);
   }, []);
+
+  useEffect(() => {
+    if (scoredArticles.length > 0) {
+      localStorage.setItem('scored_articles', JSON.stringify(scoredArticles));
+    } else {
+      localStorage.removeItem('scored_articles');
+    }
+  }, [scoredArticles]);
 
   const handleAuthenticate = () => {
     sessionStorage.setItem('dashboard_authenticated', 'true');
@@ -61,7 +74,10 @@ export default function App() {
         className="flex-1 overflow-auto"
         style={{ marginLeft: '220px', minHeight: '100vh' }}
       >
-        {activeTab === 'news-scoring' && <NewsScoringTab onScoringComplete={handleScoringComplete} />}
+        {/* NewsScoringTab stays mounted to preserve in-progress scoring state */}
+        <div style={{ display: activeTab === 'news-scoring' ? 'block' : 'none' }}>
+          <NewsScoringTab onScoringComplete={handleScoringComplete} />
+        </div>
         {activeTab === 'scored-news'  && <ScoredNewsTab articles={scoredArticles} validationNote={scoringValidationNote} onWritePitch={navigateToPitches} onNewScoring={handleNewScoring} />}
         {activeTab === 'media'        && <MediaTab onWritePitch={navigateToPitches} />}
         {activeTab === 'pitches'      && <PitchesTab initialContext={pitchContext} />}
