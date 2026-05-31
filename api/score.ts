@@ -129,14 +129,7 @@ async function scoreBatch(
   function isKnownAuthor(authorName: string): boolean {
     const author = authorName.toLowerCase().trim();
     if (!author) return false;
-    if (mediaNames.has(author)) return true;
-    const authorParts = author.split(/\s+/);
-    const authorLast = authorParts[authorParts.length - 1];
-    return Array.from(mediaNames).some(contactName => {
-      const contactParts = contactName.split(/\s+/);
-      const contactLast = contactParts[contactParts.length - 1];
-      return authorLast === contactLast;
-    });
+    return mediaNames.has(author);
   }
 
   const articlesText = batchArticles.map((a, i) =>
