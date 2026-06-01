@@ -222,7 +222,7 @@ function ArticleCard({ article, onAddToMedia, onForceScore, onWritePitch }: Card
             article.url,
             article.scoreTier,
             pendingTier,
-            overrideReason.trim() || 'Manual override',
+            overrideReason.trim(),
             new Date().toISOString(),
           ]],
         }),
@@ -342,7 +342,7 @@ function ArticleCard({ article, onAddToMedia, onForceScore, onWritePitch }: Card
                       value={overrideReason}
                       onChange={e => setOverrideReason(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter') applyOverride(); if (e.key === 'Escape') closeOverride(); }}
-                      placeholder="Reason for Claude (optional)"
+                      placeholder="Reason for Claude (required)"
                       autoFocus
                       className="w-full border rounded px-2 py-1.5 text-xs"
                       style={{ borderColor: '#E5E7EB', color: '#003E52' }}
@@ -350,7 +350,7 @@ function ArticleCard({ article, onAddToMedia, onForceScore, onWritePitch }: Card
                     <div className="flex gap-2">
                       <button
                         className="btn-primary text-xs px-3 py-1.5 flex-1"
-                        disabled={saving}
+                        disabled={saving || !overrideReason.trim()}
                         onClick={applyOverride}
                       >
                         {saving ? 'Saving…' : 'Apply'}
