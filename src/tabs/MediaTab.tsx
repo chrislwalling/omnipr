@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { MediaContact, PitchContext } from '../types';
+import type { MediaContact, PitchContext, SavedPitch } from '../types';
 
 interface Props {
   onWritePitch: (ctx: PitchContext) => void;
@@ -14,25 +14,64 @@ export default function MediaTab({ onWritePitch }: Props) {
   const loadContacts = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/sheets-read', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tab: 'Media List', asObjects: true }),
-      });
-      const data = await res.json();
-      const rows: MediaContact[] = (data.rows || []).map(
+      const [mediaRes, pitchRes] = await Promise.all([
+        fetch('/api/sheets-read', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tab: 'Media List', asObjects: true }),
+        }),
+        fetch('/api/sheets-read', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tab: 'Pitch Tracker', asObjects: true }),
+        }),
+      ]);
+
+      const mediaData = await mediaRes.json();
+      const pitchData = await pitchRes.json();
+
+      const pitches: SavedPitch[] = (pitchData.rows || []).map(
         (r: Record<string, string>, i: number) => ({
+          journalistFirst: r['Journalist First'] || '',
+          journalistLast: r['Journalist Last'] || '',
           outlet: r['Outlet'] || '',
-          first: r['First'] || '',
-          last: r['Last'] || '',
-          contact: r['Contact'] || '',
-          newContact: r['New Contact'] || '',
-          sourceArticleUrl: r['Source Article URL'] || '',
-          competitorPropertyCovered: r['Competitor Property Covered'] || '',
-          pitchAngle: r['Pitch Angle'] || '',
-          dateAdded: r['Date Added'] || '',
-          rowIndex: i + 2, // 1-based, +1 for header
+          omniProperty: r['Omni Property'] || '',
+          subjectLine: r['Subject Line'] || '',
+          body: r['Body'] || '',
+          dateSaved: r['Date Saved'] || '',
+          status: r['Status'] || 'Draft',
+          rowIndex: i + 2,
         })
+      );
+
+      const rows: MediaContact[] = (mediaData.rows || []).map(
+        (r: Record<string, string>, i: number) => {
+          const name = r['Name'] || '';
+          const nameParts = name.split(/\s+/);
+          const firstName = nameParts[0] || '';
+          const lastName = nameParts.slice(1).join(' ') || '';
+
+          const journalistPitches = pitches.filter(
+            p => p.journalistFirst === firstName && p.journalistLast === lastName
+          );
+          const lastPitched = journalistPitches
+            .map(p => p.dateSaved)
+            .filter(d => d)
+            .sort()
+            .reverse()[0] || '';
+
+          return {
+            outlet: r['Outlet'] || '',
+            name: name,
+            contact: r['Contact'] || '',
+            newContact: r['New Contact'] || '',
+            sourceArticleUrl: r['Source Article URL'] || '',
+            competitorPropertyCovered: r['Competitor Property Covered'] || '',
+            pitchAngle: r['Pitch Angle'] || '',
+            lastPitched,
+            rowIndex: i + 2,
+          };
+        }
       );
       setContacts(rows);
     } catch (e) {
@@ -48,7 +87,7 @@ export default function MediaTab({ onWritePitch }: Props) {
     if (!search) return true;
     const q = search.toLowerCase();
     return (
-      `${c.first} ${c.last}`.toLowerCase().includes(q) ||
+      c.name.toLowerCase().includes(q) ||
       c.outlet.toLowerCase().includes(q) ||
       c.contact.toLowerCase().includes(q)
     );
@@ -71,14 +110,13 @@ export default function MediaTab({ onWritePitch }: Props) {
           rowIndex: contact.rowIndex,
           values: [
             contact.outlet,
-            contact.first,
-            contact.last,
+            contact.name,
             contact.contact,
             contact.newContact,
             contact.sourceArticleUrl,
             contact.competitorPropertyCovered,
             contact.pitchAngle,
-            contact.dateAdded,
+            contact.lastPitched,
           ],
         }),
       });
@@ -140,7 +178,7 @@ export default function MediaTab({ onWritePitch }: Props) {
                 <th>Competitor Covered</th>
                 <th>Pitch Angle</th>
                 <th>Source Article</th>
-                <th>Date Added</th>
+                <th>Last Pitched</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -150,24 +188,14 @@ export default function MediaTab({ onWritePitch }: Props) {
                 return (
                   <tr key={realIdx}>
                     <td>
-                      <div className="flex gap-1">
-                        <input
-                          className="border-b text-sm w-16 bg-transparent outline-none focus:border-gold"
-                          style={{ borderColor: '#E5E7EB', color: '#003E52' }}
-                          value={contact.first}
-                          onChange={e => handleFieldChange(realIdx, 'first', e.target.value)}
-                          onBlur={() => handleBlur(contact, realIdx)}
-                          placeholder="First"
-                        />
-                        <input
-                          className="border-b text-sm w-20 bg-transparent outline-none focus:border-gold"
-                          style={{ borderColor: '#E5E7EB', color: '#003E52' }}
-                          value={contact.last}
-                          onChange={e => handleFieldChange(realIdx, 'last', e.target.value)}
-                          onBlur={() => handleBlur(contact, realIdx)}
-                          placeholder="Last"
-                        />
-                      </div>
+                      <input
+                        className="border-b text-sm w-40 bg-transparent outline-none focus:border-gold"
+                        style={{ borderColor: '#E5E7EB', color: '#003E52' }}
+                        value={contact.name}
+                        onChange={e => handleFieldChange(realIdx, 'name', e.target.value)}
+                        onBlur={() => handleBlur(contact, realIdx)}
+                        placeholder="Full name"
+                      />
                     </td>
                     <td>
                       <input
@@ -223,8 +251,15 @@ export default function MediaTab({ onWritePitch }: Props) {
                         </a>
                       ) : <span style={{ color: '#C9C9C9' }}>—</span>}
                     </td>
-                    <td className="text-xs" style={{ color: '#6B7280' }}>
-                      {contact.dateAdded || <span style={{ color: '#C9C9C9' }}>—</span>}
+                    <td>
+                      <input
+                        className="border-b text-sm w-32 bg-transparent outline-none"
+                        style={{ borderColor: '#E5E7EB', color: '#003E52' }}
+                        value={contact.lastPitched}
+                        onChange={e => handleFieldChange(realIdx, 'lastPitched', e.target.value)}
+                        onBlur={() => handleBlur(contact, realIdx)}
+                        placeholder="YYYY-MM-DD"
+                      />
                     </td>
                     <td>
                       <div className="flex gap-2">
@@ -232,7 +267,7 @@ export default function MediaTab({ onWritePitch }: Props) {
                           className="text-xs px-3 py-1 rounded font-semibold transition-colors"
                           style={{ backgroundColor: '#C8A45A', color: '#003E52' }}
                           onClick={() => onWritePitch({
-                            journalistName: `${contact.first} ${contact.last}`.trim(),
+                            journalistName: contact.name,
                             outlet: contact.outlet,
                             competitorProperty: contact.competitorPropertyCovered,
                             articleHeadline: '',

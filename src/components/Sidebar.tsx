@@ -1,4 +1,4 @@
-import { Newspaper, Users, PenLine, ClipboardList, BarChart2 } from 'lucide-react';
+import { Newspaper, CheckCircle2, Users, PenLine, ClipboardList, BarChart2 } from 'lucide-react';
 import type { TabId } from '../App';
 import SystemStatus from './SystemStatus';
 import OmniLogo from './OmniLogo';
@@ -7,11 +7,12 @@ import OmniLogo from './OmniLogo';
 // <img src="/omni-logo.svg" alt="Omni Hotels" className="w-10 h-10" />
 
 const NAV_ITEMS: { id: TabId; label: string; Icon: React.FC<{ size: number }> }[] = [
-  { id: 'news',    label: 'News',         Icon: Newspaper },
-  { id: 'media',   label: 'Media',        Icon: Users },
-  { id: 'pitches', label: 'Pitches',      Icon: PenLine },
-  { id: 'tracker', label: 'Pitch Tracker',Icon: ClipboardList },
-  { id: 'usage',   label: 'Usage',        Icon: BarChart2 },
+  { id: 'news-scoring', label: 'News Scoring',   Icon: Newspaper },
+  { id: 'scored-news',  label: 'Scored News',    Icon: CheckCircle2 },
+  { id: 'media',        label: 'Media',          Icon: Users },
+  { id: 'pitches',      label: 'Pitches',        Icon: PenLine },
+  { id: 'tracker',      label: 'Pitch Tracker',  Icon: ClipboardList },
+  { id: 'usage',        label: 'Usage',          Icon: BarChart2 },
 ];
 
 interface Props {

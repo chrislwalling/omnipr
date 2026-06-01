@@ -12,8 +12,8 @@ const SHEET_ID = process.env.OMNI_SHEET_ID!;
 
 const TABS: Record<string, string[]> = {
   'Media List': [
-    'Outlet', 'First', 'Last', 'Contact', 'New Contact',
-    'Source Article URL', 'Competitor Property Covered', 'Pitch Angle', 'Date Added',
+    'Outlet', 'Name', 'Contact', 'New Contact',
+    'Source Article URL', 'Competitor Property Covered', 'Pitch Angle', 'Last Pitched',
   ],
   'Pitch Tracker': [
     'Journalist First', 'Journalist Last', 'Outlet', 'Omni Property',

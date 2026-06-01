@@ -81,9 +81,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       rawRows = XLSX.utils.sheet_to_json<Record<string, string>>(sheet, { defval: '' });
     } else {
       const workbook = XLSX.read(fileBuffer, { type: 'buffer', cellFormula: true });
+
+      // Prefer "Articles" sheet if it exists, otherwise pick the largest sheet
       let bestSheet = workbook.SheetNames[0];
-      for (const name of workbook.SheetNames) {
-        if (Object.keys(workbook.Sheets[name] || {}).length > 5) { bestSheet = name; break; }
+      if (workbook.SheetNames.includes('Articles')) {
+        bestSheet = 'Articles';
+      } else {
+        let maxCells = 0;
+        for (const name of workbook.SheetNames) {
+          const cellCount = Object.keys(workbook.Sheets[name] || {}).length;
+          if (cellCount > maxCells) {
+            maxCells = cellCount;
+            bestSheet = name;
+          }
+        }
       }
       rawRows = XLSX.utils.sheet_to_json<Record<string, string>>(workbook.Sheets[bestSheet], { defval: '', raw: false });
     }
@@ -91,6 +102,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!rawRows.length) return res.status(400).json({ error: 'No rows found in file' });
 
     const keys = Object.keys(rawRows[0]);
+    console.log(`[muckrack-import] Columns found: ${keys.join(', ')}`);
+    console.log(`[muckrack-import] First row sample:`, rawRows[0]);
 
     // Resolve column keys: exact Muck Rack names first, then regex fallback
     const headlineKey = resolveKey(keys, ['Article'], /headline|title/i);
@@ -125,8 +138,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }))
       .filter(a => a.headline || a.url);
 
+    if (!articles.length) {
+      console.log(`[muckrack-import] No articles passed filter. Keys: ${keys.join(', ')}`);
+      console.log(`[muckrack-import] Resolved: headline="${headlineKey}", url="${urlKey}", outlet="${outletKey}", author="${authorKey}"`);
+      return res.status(400).json({
+        error: 'No valid articles found in file',
+        details: `Could not find headline/url columns. Found columns: ${keys.join(', ')}`,
+      });
+    }
+
     return res.json({ articles, totalRows: rawRows.length, parsedRows: articles.length });
   } catch (e) {
-    return res.status(500).json({ error: (e as Error).message });
+    const errorMsg = e instanceof Error
+      ? e.message
+      : typeof e === 'string'
+        ? e
+        : JSON.stringify(e).slice(0, 200) || 'Unknown error';
+    console.error('[muckrack-import] Error:', errorMsg, e);
+    return res.status(500).json({ error: errorMsg });
   }
 }

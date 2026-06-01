@@ -81,7 +81,30 @@ GOLF-FORWARD PITCH FILTER:
 
 SYNDICATION DEDUPLICATION: Group by normalized headline (first 60 chars) + author. Wire content with no author groups on headline alone. Canonical = highest UVM in cluster. Set syndicationCount on canonical.
 
-COMPETITOR PROPERTIES TO WATCH: Pebble Beach, Pinehurst, Kiawah Island, Sea Island, Streamsong, Bandon Dunes, TPC Sawgrass, Kohler (Whistling Straits/Blackwolf Run).
+COMPETITOR DETECTION (required — read carefully):
+For EACH article, actively scan the headline AND the snippet text for the exact name of any competitor from the lists below.
+- If a competitor name appears anywhere in the article data, set competitorProperty to the exact name (e.g. "The Greenbrier", "Streamsong", "Kiawah Island Golf Resort").
+- If multiple competitors appear, list them comma-separated.
+- If no competitor is found, set competitorProperty to an empty string "".
+- Do NOT skip this field. A competitor mention in the snippet is the primary reason these articles were flagged.
+
+COMPETITOR PROPERTIES — ALL PROPERTIES:
+Streamsong, Destination Kohler, Pinehurst Resort, Cabot, Bandon Dunes, Kiawah Island Golf Resort
+
+COMPETITOR PROPERTIES — PGA FRISCO SPECIFIC:
+Horseshoe Bay Resort, Lajitas Golf Resort, The Woodlands Resort, Streamsong Resort, Kiawah Island Golf Resort, Destination Kohler
+
+COMPETITOR PROPERTIES — BARTON CREEK SPECIFIC:
+Horseshoe Bay Resort, Tapatio Springs Hill Country Resort, La Cantera Resort, JW Marriott San Antonio Hill Country Resort & Spa, The Woodlands Resort, Lajitas Golf Resort
+
+COMPETITOR PROPERTIES — LA COSTA SPECIFIC:
+The Resort at Pelican Hill, Terranea Resort, Torrey Pines, Park Hyatt Aviara, La Quinta Resort & Club
+
+COMPETITOR PROPERTIES — AMELIA ISLAND SPECIFIC:
+The Ritz-Carlton Amelia Island, Sea Island Resort, Streamsong, Kiawah Island Golf Resort, PGA National, Innisbrook Resort
+
+COMPETITOR PROPERTIES — HOMESTEAD SPECIFIC:
+The Greenbrier, Pinehurst Resort, Nemacolin, Keswick Hall, Salamander Resort & Spa
 
 OMNI GOLF COLLECTION (12 properties):
 1. PGA Frisco (Frisco, TX) — PGA of America HQ campus, Fields Ranch East & West.
@@ -96,6 +119,169 @@ OMNI GOLF COLLECTION (12 properties):
 10. Omni Scottsdale (Scottsdale, AZ)
 11. Omni Hilton Head (Hilton Head, SC)
 12. Omni Championsgate (Orlando, FL)`;
+
+async function scoreBatch(
+  batchArticles: ArticleInput[],
+  batchIndex: number,
+  correctionContext: string,
+  mediaNames: Set<string>
+): Promise<ScoredArticle[]> {
+  function isKnownAuthor(authorName: string): boolean {
+    const author = authorName.toLowerCase().trim();
+    if (!author) return false;
+    return mediaNames.has(author);
+  }
+
+  const articlesText = batchArticles.map((a, i) =>
+    `${i + 1}. Headline: "${a.headline}" | Outlet: ${a.outlet} | Author: ${a.author} | UVM: ${a.uvm} | URL: ${a.url} | Date: ${a.publishDate}${a.snippet ? ` | Snippet: ${a.snippet}` : ''}`
+  ).join('\n');
+
+  const userPrompt = `You are scoring ${batchArticles.length} golf/travel media articles (batch ${batchIndex}).
+
+ARTICLES TO SCORE:
+${articlesText}
+
+TASK: Return a JSON array. One object per article. No other text, no markdown.
+
+REQUIRED FIELDS (exact order):
+{
+  "index": number (1-based),
+  "headline": string,
+  "url": string,
+  "outlet": string,
+  "author": string,
+  "publishDate": string,
+  "uvm": string,
+  "scoreTier": "High" | "Medium" | "Low" | "Discard",
+  "articleType": string,
+  "competitorProperty": string,
+  "scoringExplanation": string,
+  "pitchAngle": string,
+  "syndicationCount": number,
+  "isCanonical": boolean
+}
+
+START JSON ARRAY NOW:`;
+
+  let result;
+  try {
+    console.log(`[BATCH ${batchIndex}] Calling Claude with ${batchArticles.length} articles...`);
+    result = await callClaude({
+      userPrompt,
+      contextString: [
+        OMNI_SCORING_PROMPT,
+        correctionContext ? `\nSCORING CORRECTIONS:\n${correctionContext}` : '',
+      ].join('\n'),
+    });
+    console.log(`[BATCH ${batchIndex}] Claude response received: ${result.content.length} characters`);
+  } catch (claudeErr) {
+    console.error(`[BATCH ${batchIndex}] CLAUDE API CALL FAILED`);
+    console.error('Error:', claudeErr);
+    throw new Error(`Claude API call failed for batch ${batchIndex}: ${(claudeErr as Error).message}`);
+  }
+
+  let scored: ScoredArticle[] = [];
+  try {
+    if (!result.content || typeof result.content !== 'string' || result.content.length === 0) {
+      throw new Error(`Claude returned empty or invalid response`);
+    }
+
+    let jsonStr: string | null = null;
+    let workingContent = result.content.trim();
+
+    let extracted = workingContent;
+    const codeBlockPatterns = [
+      /```(?:json)?\s*([\s\S]*?)\s*```/,
+    ];
+    for (const pattern of codeBlockPatterns) {
+      const match = extracted.match(pattern);
+      if (match && match[1]) {
+        extracted = match[1].trim();
+        break;
+      }
+    }
+
+    const firstBracket = extracted.indexOf('[');
+    const lastBracket = extracted.lastIndexOf(']');
+
+    if (firstBracket >= 0 && lastBracket > firstBracket) {
+      jsonStr = extracted.substring(firstBracket, lastBracket + 1);
+    }
+
+    if (!jsonStr) {
+      try {
+        const parsed = JSON.parse(extracted);
+        if (Array.isArray(parsed)) {
+          jsonStr = extracted;
+        } else if (parsed && typeof parsed === 'object') {
+          const obj = parsed as Record<string, unknown>;
+          if (Array.isArray(obj.articles)) {
+            jsonStr = JSON.stringify(obj.articles);
+          } else if (Array.isArray(obj.results)) {
+            jsonStr = JSON.stringify(obj.results);
+          } else if (Array.isArray(obj.data)) {
+            jsonStr = JSON.stringify(obj.data);
+          } else if (Array.isArray(obj.scored)) {
+            jsonStr = JSON.stringify(obj.scored);
+          }
+        }
+      } catch { /* ignore */ }
+    }
+
+    if (!jsonStr) {
+      throw new Error(`No JSON array found. Response length: ${result.content.length}`);
+    }
+
+    let parsed2: unknown;
+    try {
+      parsed2 = JSON.parse(jsonStr);
+    } catch (parseErr) {
+      throw new Error(`JSON parse error: ${(parseErr as Error).message}`);
+    }
+
+    if (!Array.isArray(parsed2)) {
+      throw new Error(`Response is not an array`);
+    }
+
+    scored = parsed2.map((item: Record<string, unknown>) => {
+      const authorName = String(item.author || '');
+      const scoreTier = item.scoreTier as ScoredArticle['scoreTier'] | undefined;
+      const validTiers = ['High', 'Medium', 'Low', 'Discard'];
+      return {
+        headline: String(item.headline || ''),
+        url: String(item.url || ''),
+        outlet: String(item.outlet || ''),
+        author: authorName,
+        publishDate: String(item.publishDate || ''),
+        uvm: String(item.uvm || ''),
+        scoreTier: validTiers.includes(scoreTier || '') ? (scoreTier as ScoredArticle['scoreTier']) : 'Low',
+        articleType: String(item.articleType || ''),
+        competitorProperty: String(item.competitorProperty || ''),
+        scoringExplanation: String(item.scoringExplanation || ''),
+        pitchAngle: String(item.pitchAngle || ''),
+        syndicationCount: Number(item.syndicationCount) || 0,
+        knownContact: isKnownAuthor(authorName),
+        isCanonical: item.isCanonical !== false,
+      } satisfies ScoredArticle;
+    });
+  } catch (e) {
+    const errorMsg = (e as Error).message;
+    console.error(`[BATCH ${batchIndex}] SCORING ERROR: ${errorMsg}`);
+    scored = batchArticles.map(a => ({
+      ...a,
+      scoreTier: 'Low' as const,
+      articleType: '',
+      competitorProperty: '',
+      scoringExplanation: `Batch scoring error — defaulted to Low`,
+      pitchAngle: '',
+      syndicationCount: 0,
+      knownContact: isKnownAuthor(a.author),
+      isCanonical: true,
+    }));
+  }
+  return scored;
+}
+
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -119,79 +305,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       : '';
 
     const mediaNames = new Set(
-      mediaList.map(m => `${(m['First'] || '').toLowerCase()} ${(m['Last'] || '').toLowerCase()}`.trim())
+      mediaList
+        .map(m => (m['Name'] || '').toLowerCase().trim())
+        .filter(Boolean)
     );
 
-    const articlesText = articles.map((a, i) =>
-      `${i + 1}. Headline: "${a.headline}" | Outlet: ${a.outlet} | Author: ${a.author} | UVM: ${a.uvm} | URL: ${a.url} | Date: ${a.publishDate}`
-    ).join('\n');
-
-    const userPrompt = `Score each of the following ${articles.length} articles for PR value to Omni Hotels & Resorts golf properties.\n\nApply the full scoring spec. Deduplicate syndicated content.\n\nArticles:\n${articlesText}\n\nReturn ONLY a JSON array with one object per UNIQUE article (Discards included with scoreTier: "Discard"). Each object:\n- index (1-based)
-- headline
-- url
-- outlet
-- author
-- publishDate
-- uvm
-- scoreTier: "High" | "Medium" | "Low" | "Discard"
-- articleType: Feature | Renovation | Championship | Rankings | Brief | Tee Times | Other
-- competitorProperty: name of competitor property covered or ""
-- scoringExplanation: 1-2 sentences
-- pitchAngle: specific Omni angle if High or Medium, otherwise ""
-- syndicationCount: number of duplicates (0 if unique)
-- isCanonical: true if this is the record to show`;
-
-    const result = await callClaude({
-      userPrompt,
-      contextString: [
-        OMNI_SCORING_PROMPT,
-        correctionContext ? `\nSCORING CORRECTIONS:\n${correctionContext}` : '',
-      ].join('\n'),
-    });
-
-    let scored: ScoredArticle[] = [];
-    try {
-      const jsonMatch = result.content.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        scored = parsed.map((item: Record<string, unknown>, i: number) => {
-          const src = articles[i] || articles[0];
-          const authorName = String(item.author || src.author || '').toLowerCase();
-          return {
-            headline: String(item.headline || src.headline),
-            url: String(item.url || src.url),
-            outlet: String(item.outlet || src.outlet),
-            author: String(item.author || src.author),
-            publishDate: String(item.publishDate || src.publishDate),
-            uvm: String(item.uvm || src.uvm),
-            scoreTier: (item.scoreTier as ScoredArticle['scoreTier']) || 'Low',
-            articleType: String(item.articleType || ''),
-            competitorProperty: String(item.competitorProperty || ''),
-            scoringExplanation: String(item.scoringExplanation || ''),
-            pitchAngle: String(item.pitchAngle || ''),
-            syndicationCount: Number(item.syndicationCount) || 0,
-            knownContact: mediaNames.has(authorName),
-            isCanonical: item.isCanonical !== false,
-          } satisfies ScoredArticle;
-        });
-      }
-    } catch {
-      scored = articles.map(a => ({
-        ...a,
-        scoreTier: 'Low' as const,
-        articleType: '',
-        competitorProperty: '',
-        scoringExplanation: 'Scoring parse error — defaulted to Low',
-        pitchAngle: '',
-        syndicationCount: 0,
-        knownContact: false,
-        isCanonical: true,
-      }));
-    }
+    console.log(`Scoring ${articles.length} articles...`);
+    let scored = await scoreBatch(articles, 1, correctionContext, mediaNames);
 
     // Validate HIGH tier articles against actual content
     const highArticles = scored.filter(a => a.scoreTier === 'High');
     if (highArticles.length > 0) {
+      console.log(`Validating ${highArticles.length} HIGH-tier articles...`);
       const validationTexts = await Promise.all(
         highArticles.map(async (a) => ({
           article: a,

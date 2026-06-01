@@ -7,7 +7,9 @@ export interface ArticleInput {
   author: string;
   publishDate: string;
   uvm: string;
+  snippet?: string;
 }
+
 
 export interface ScoredArticle {
   headline: string;
@@ -28,14 +30,13 @@ export interface ScoredArticle {
 
 export interface MediaContact {
   outlet: string;
-  first: string;
-  last: string;
+  name: string;
   contact: string;
   newContact: string;
   sourceArticleUrl: string;
   competitorPropertyCovered: string;
   pitchAngle: string;
-  dateAdded: string;
+  lastPitched: string;
   rowIndex?: number;
 }
 
