@@ -19,10 +19,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const e = rows[todayIdx];
       await updateSheetRow('My Metrics', todayIdx + 2, [
         today,
-        String((parseInt(e['Articles Scored'] || '0') || 0) + (body.articlesScored || 0)),
+        String((parseInt(e['Article Scored'] || '0') || 0) + (body.articlesScored || 0)),
         String((parseInt(e['New Contacts Added'] || '0') || 0) + (body.newContactsAdded || 0)),
         String((parseInt(e['Pitches Drafted'] || '0') || 0) + (body.pitchesDrafted || 0)),
-        String((parseInt(e['Opportunities Converted'] || '0') || 0) + (body.opportunitiesConverted || 0)),
+        String((parseInt(e['Opportunities Created'] || '0') || 0) + (body.opportunitiesConverted || 0)),
       ]);
     } else {
       await appendToSheet('My Metrics', [[
