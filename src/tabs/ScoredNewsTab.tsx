@@ -185,9 +185,9 @@ interface CardProps {
 function ArticleCard({ article, onAddToMedia, onForceScore, onWritePitch }: CardProps) {
   const [addedToMedia, setAddedToMedia] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
-  const [overrideOpen, setOverrideOpen] = useState(false);
-  const [pendingTier, setPendingTier] = useState<ScoreTier | null>(null);
-  const [overrideReason, setOverrideReason] = useState('');
+  const [changeScoreOpen, setChangeScoreOpen] = useState(false);
+  const [selectedTier, setSelectedTier] = useState<ScoreTier>(article.scoreTier);
+  const [reason, setReason] = useState('');
   const [saving, setSaving] = useState(false);
 
   async function handleAddToMedia() {
@@ -195,23 +195,22 @@ function ArticleCard({ article, onAddToMedia, onForceScore, onWritePitch }: Card
     setAddedToMedia(true);
   }
 
-  function openOverride() {
-    setOverrideOpen(true);
-    setPendingTier(null);
-    setOverrideReason('');
+  function openChangeScore() {
+    setChangeScoreOpen(true);
+    setSelectedTier(article.scoreTier);
+    setReason('');
   }
 
-  function closeOverride() {
-    setOverrideOpen(false);
-    setPendingTier(null);
-    setOverrideReason('');
+  function closeChangeScore() {
+    setChangeScoreOpen(false);
+    setReason('');
   }
 
-  async function applyOverride() {
-    if (!pendingTier) return;
+  async function submitChangeScore() {
+    if (!reason.trim()) return;
     setSaving(true);
     try {
-      onForceScore(pendingTier, overrideReason);
+      onForceScore(selectedTier, reason);
       await fetch('/api/sheets-write', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -221,13 +220,13 @@ function ArticleCard({ article, onAddToMedia, onForceScore, onWritePitch }: Card
             article.headline,
             article.url,
             article.scoreTier,
-            pendingTier,
-            overrideReason.trim(),
+            selectedTier,
+            reason.trim(),
             new Date().toISOString(),
           ]],
         }),
       });
-      closeOverride();
+      closeChangeScore();
     } finally {
       setSaving(false);
     }
@@ -266,105 +265,7 @@ function ArticleCard({ article, onAddToMedia, onForceScore, onWritePitch }: Card
           )}
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          {/* Score badge — click to change score */}
-          <div className="relative" onClick={e => e.stopPropagation()}>
-            <button
-              title="Change score"
-              onClick={openOverride}
-              className="flex items-center gap-1 rounded focus:outline-none"
-            >
-              <ScoreBadge tier={article.scoreTier} />
-              <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="#9ca3af" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536M9 11l6-6 3 3-6 6H9v-3z" />
-              </svg>
-            </button>
-
-            {overrideOpen && (
-              <div
-                className="absolute right-0 top-full mt-1 z-20 rounded-lg shadow-lg"
-                style={{ border: '1px solid #E5E7EB', backgroundColor: '#fff', width: '220px' }}
-              >
-                {!pendingTier ? (
-                  /* Phase 1: pick a tier */
-                  <>
-                    <p className="px-3 py-2 text-xs font-semibold" style={{ color: '#6B7280', borderBottom: '1px solid #F3F4F6' }}>
-                      Change score
-                    </p>
-                    {(['High', 'Medium', 'Low', 'Discard'] as ScoreTier[]).map(tier => (
-                      <button
-                        key={tier}
-                        className="w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-gray-50 transition-colors"
-                        style={{
-                          color: tier === article.scoreTier ? '#003E52' : '#374151',
-                          fontWeight: tier === article.scoreTier ? 600 : 400,
-                        }}
-                        onClick={() => setPendingTier(tier)}
-                      >
-                        <span
-                          className="inline-block w-2 h-2 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: TIER_COLORS[tier] }}
-                        />
-                        {tier}
-                        {tier === article.scoreTier && (
-                          <span className="ml-auto text-xs" style={{ color: '#9ca3af' }}>current</span>
-                        )}
-                      </button>
-                    ))}
-                    <div style={{ borderTop: '1px solid #F3F4F6' }}>
-                      <button
-                        className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 transition-colors"
-                        style={{ color: '#9ca3af' }}
-                        onClick={closeOverride}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </>
-                ) : (
-                  /* Phase 2: optional reason + confirm */
-                  <div className="p-3 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="inline-block w-2 h-2 rounded-full flex-shrink-0"
-                        style={{ backgroundColor: TIER_COLORS[pendingTier] }}
-                      />
-                      <span className="text-sm font-semibold" style={{ color: '#003E52' }}>{pendingTier}</span>
-                      <button
-                        className="ml-auto text-xs"
-                        style={{ color: '#9ca3af' }}
-                        onClick={() => setPendingTier(null)}
-                      >
-                        ← back
-                      </button>
-                    </div>
-                    <input
-                      type="text"
-                      value={overrideReason}
-                      onChange={e => setOverrideReason(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter') applyOverride(); if (e.key === 'Escape') closeOverride(); }}
-                      placeholder="Reason for Claude (required)"
-                      autoFocus
-                      className="w-full border rounded px-2 py-1.5 text-xs"
-                      style={{ borderColor: '#E5E7EB', color: '#003E52' }}
-                    />
-                    <div className="flex gap-2">
-                      <button
-                        className="btn-primary text-xs px-3 py-1.5 flex-1"
-                        disabled={saving || !overrideReason.trim()}
-                        onClick={applyOverride}
-                      >
-                        {saving ? 'Saving…' : 'Apply'}
-                      </button>
-                      <button className="btn-secondary text-xs px-3 py-1.5" onClick={closeOverride}>
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
+          <ScoreBadge tier={article.scoreTier} />
           {article.knownContact && (
             <span
               className="text-xs px-2 py-0.5 rounded-full font-semibold"
@@ -440,7 +341,66 @@ function ArticleCard({ article, onAddToMedia, onForceScore, onWritePitch }: Card
             >
               {addedToMedia ? 'Added ✓' : 'Add to Media List'}
             </button>
+            <button
+              className="text-xs px-3 py-1.5 rounded border transition-colors"
+              style={{
+                borderColor: changeScoreOpen ? '#C8A45A' : '#E5E7EB',
+                color: changeScoreOpen ? '#C8A45A' : '#6B7280',
+              }}
+              onClick={changeScoreOpen ? closeChangeScore : openChangeScore}
+            >
+              Change Score
+            </button>
           </div>
+
+          {changeScoreOpen && (
+            <div
+              className="rounded-lg p-4 space-y-3"
+              style={{ backgroundColor: '#F8F5F0', border: '1px solid #E5E7EB' }}
+            >
+              <p className="text-xs font-semibold" style={{ color: '#003E52' }}>Change Score</p>
+              <div className="flex gap-3 items-start">
+                <div className="flex-shrink-0">
+                  <label className="text-xs" style={{ color: '#6B7280' }}>New Score</label>
+                  <select
+                    value={selectedTier}
+                    onChange={e => setSelectedTier(e.target.value as ScoreTier)}
+                    className="block mt-1 border rounded px-3 py-1.5 text-sm"
+                    style={{ borderColor: '#E5E7EB', color: '#003E52' }}
+                  >
+                    <option>High</option>
+                    <option>Medium</option>
+                    <option>Low</option>
+                    <option>Discard</option>
+                  </select>
+                </div>
+                <div className="flex-1">
+                  <label className="text-xs" style={{ color: '#6B7280' }}>Reason for Claude (required)</label>
+                  <input
+                    type="text"
+                    value={reason}
+                    onChange={e => setReason(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') submitChangeScore(); if (e.key === 'Escape') closeChangeScore(); }}
+                    placeholder="Why should this be re-scored?"
+                    className="block w-full mt-1 border rounded px-3 py-1.5 text-sm"
+                    style={{ borderColor: '#E5E7EB', color: '#003E52' }}
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  className="btn-primary text-xs px-3 py-1.5"
+                  disabled={!reason.trim() || saving}
+                  onClick={submitChangeScore}
+                >
+                  {saving ? 'Saving…' : 'Save'}
+                </button>
+                <button className="btn-secondary text-xs px-3 py-1.5" onClick={closeChangeScore}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
