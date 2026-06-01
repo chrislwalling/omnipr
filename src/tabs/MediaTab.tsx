@@ -73,6 +73,7 @@ export default function MediaTab({ onWritePitch }: Props) {
           };
         }
       );
+      rows.sort((a, b) => a.name.localeCompare(b.name));
       setContacts(rows);
     } catch (e) {
       console.error(e);
