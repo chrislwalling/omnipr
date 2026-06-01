@@ -36,10 +36,10 @@ export default function UsageTab() {
         }
         const parsed: DayMetrics[] = (data.rows || []).map((r: Record<string, string>) => ({
           date: r['Date'] || '',
-          articlesScored: parseInt(r['Articles Scored'] || '0') || 0,
+          articlesScored: parseInt(r['Article Scored'] || '0') || 0,
           newContactsAdded: parseInt(r['New Contacts Added'] || '0') || 0,
           pitchesDrafted: parseInt(r['Pitches Drafted'] || '0') || 0,
-          opportunitiesConverted: parseInt(r['Opportunities Converted'] || '0') || 0,
+          opportunitiesConverted: parseInt(r['Opportunities Created'] || '0') || 0,
         }));
         const sorted = parsed
           .filter(r => r.date)

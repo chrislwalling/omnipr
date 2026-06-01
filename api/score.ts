@@ -380,10 +380,10 @@ ${articlesWithContent}`;
         const e = metricsRows[todayIdx];
         await updateSheetRow('My Metrics', todayIdx + 2, [
           todayStr,
-          String((parseInt(e['Articles Scored'] || '0') || 0) + scored.length),
+          String((parseInt(e['Article Scored'] || '0') || 0) + scored.length),
           String(parseInt(e['New Contacts Added'] || '0') || 0),
           String(parseInt(e['Pitches Drafted'] || '0') || 0),
-          String(parseInt(e['Opportunities Converted'] || '0') || 0),
+          String(parseInt(e['Opportunities Created'] || '0') || 0),
         ]);
       } else {
         await appendToSheet('My Metrics', [[
