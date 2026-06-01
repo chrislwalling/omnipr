@@ -110,13 +110,6 @@ export default function NewsScoringTab({ onScoringComplete }: Props) {
         body: JSON.stringify(counts),
       }).catch(() => {});
 
-      // Increment My Metrics (non-blocking)
-      fetch('/api/metrics-increment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ articlesScored: scored.length }),
-      }).catch(() => {});
-
       setProgress(100);
       setReviewArticles(scored);
       setReviewValidationNote(note || null);

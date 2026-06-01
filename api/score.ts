@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { callClaude, today } from '../lib/claude.js';
-import { readSheetAsObjects, appendToSheet } from '../lib/sheets.js';
+import { readSheetAsObjects, appendToSheet, updateSheetRow } from '../lib/sheets.js';
 import type { ArticleInput, ScoredArticle } from '../src/types.js';
 
 async function fetchArticleText(url: string, timeout = 10000): Promise<string | null> {
@@ -370,6 +370,28 @@ ${articlesWithContent}`;
         a.knownContact ? 'Yes' : 'No',
         uploadDate,
       ]));
+    } catch { /* non-fatal */ }
+
+    try {
+      const metricsRows = await readSheetAsObjects('My Metrics');
+      const todayStr = uploadDate;
+      const todayIdx = metricsRows.findIndex(r => r['Date'] === todayStr);
+      if (todayIdx >= 0) {
+        const e = metricsRows[todayIdx];
+        await updateSheetRow('My Metrics', todayIdx + 2, [
+          todayStr,
+          String((parseInt(e['Articles Scored'] || '0') || 0) + scored.length),
+          String(parseInt(e['New Contacts Added'] || '0') || 0),
+          String(parseInt(e['Pitches Drafted'] || '0') || 0),
+          String(parseInt(e['Opportunities Converted'] || '0') || 0),
+        ]);
+      } else {
+        await appendToSheet('My Metrics', [[
+          todayStr,
+          String(scored.length),
+          '0', '0', '0',
+        ]]);
+      }
     } catch { /* non-fatal */ }
 
     const counts = scored.reduce(
