@@ -31,6 +31,9 @@ export default function UsageTab() {
           body: JSON.stringify({ tab: 'My Metrics', asObjects: true }),
         });
         const data = await res.json();
+        if (!res.ok || data.error) {
+          throw new Error(data.error || `HTTP ${res.status}`);
+        }
         const parsed: DayMetrics[] = (data.rows || []).map((r: Record<string, string>) => ({
           date: r['Date'] || '',
           articlesScored: parseInt(r['Articles Scored'] || '0') || 0,
@@ -101,13 +104,15 @@ export default function UsageTab() {
             <p
               className="text-4xl font-bold"
               style={{
-                color: kpi.accent ? '#C9A84C' : '#1B2F52',
+                color: error ? '#991b1b' : kpi.accent ? '#C9A84C' : '#1B2F52',
                 fontFamily: 'Georgia, serif',
               }}
             >
-              {loading ? '—' : kpi.value.toLocaleString()}
+              {loading ? '—' : error ? '!' : kpi.value.toLocaleString()}
             </p>
-            <p className="text-xs mt-1" style={{ color: '#8A9BB0' }}>All time</p>
+            <p className="text-xs mt-1" style={{ color: error ? '#991b1b' : '#8A9BB0' }}>
+              {error ? 'Error' : 'All time'}
+            </p>
           </div>
         ))}
       </div>
