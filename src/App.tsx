@@ -87,6 +87,10 @@ export default function App() {
     setActiveTab('news-scoring');
   }
 
+  function handleForceScore(url: string, newTier: ScoreTier) {
+    setScoredArticles(prev => prev.map(a => a.url === url ? { ...a, scoreTier: newTier } : a));
+  }
+
   return (
     <div className="flex min-h-screen" style={{ backgroundColor: '#FFFFFF' }}>
       <Sidebar activeTab={activeTab} onTabChange={handleTabChange} />
@@ -98,7 +102,7 @@ export default function App() {
         <div style={{ display: activeTab === 'news-scoring' ? 'block' : 'none' }}>
           <NewsScoringTab onScoringComplete={handleScoringComplete} />
         </div>
-        {activeTab === 'scored-news'  && <ScoredNewsTab articles={scoredArticles} validationNote={scoringValidationNote} onWritePitch={navigateToPitches} onNewScoring={handleNewScoring} isLoading={isLoadingArticles} />}
+        {activeTab === 'scored-news'  && <ScoredNewsTab articles={scoredArticles} validationNote={scoringValidationNote} onWritePitch={navigateToPitches} onNewScoring={handleNewScoring} onForceScore={handleForceScore} isLoading={isLoadingArticles} />}
         {activeTab === 'media'        && <MediaTab onWritePitch={navigateToPitches} />}
         {activeTab === 'pitches'      && <PitchesTab initialContext={pitchContext} />}
         {activeTab === 'tracker'      && <PitchTrackerTab />}

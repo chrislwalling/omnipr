@@ -11,10 +11,11 @@ interface Props {
   validationNote: string | null;
   onWritePitch: (ctx: PitchContext) => void;
   onNewScoring: () => void;
+  onForceScore: (url: string, newTier: ScoreTier) => void;
   isLoading?: boolean;
 }
 
-export default function ScoredNewsTab({ articles, validationNote, onWritePitch, onNewScoring, isLoading }: Props) {
+export default function ScoredNewsTab({ articles, validationNote, onWritePitch, onNewScoring, onForceScore, isLoading }: Props) {
   const [sortField, setSortField] = useState<SortField>('scoreTier');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedScoreTiers, setSelectedScoreTiers] = useState<Set<ScoreTier>>(new Set(['High', 'Medium', 'Low']));
@@ -198,6 +199,7 @@ export default function ScoredNewsTab({ articles, validationNote, onWritePitch, 
               correctionSubmitting={correctionSubmitting}
               onSubmitCorrection={() => submitCorrection(article)}
               onAddToMedia={() => handleAddToMedia(article)}
+              onForceScore={(newTier) => onForceScore(article.url, newTier)}
               onWritePitch={() => onWritePitch({
                 journalistName: article.author,
                 outlet: article.outlet,
@@ -226,22 +228,51 @@ interface CardProps {
   correctionSubmitting: boolean;
   onSubmitCorrection: () => void;
   onAddToMedia: () => void;
+  onForceScore: (newTier: ScoreTier) => void;
   onWritePitch: () => void;
 }
+
+const TIER_COLORS: Record<ScoreTier, { bg: string; text: string; label: string }> = {
+  High:    { bg: '#C8A45A', text: '#fff',     label: 'High' },
+  Medium:  { bg: '#003E52', text: '#fff',     label: 'Medium' },
+  Low:     { bg: '#6B7280', text: '#fff',     label: 'Low' },
+  Discard: { bg: '#fee2e2', text: '#991b1b',  label: 'Discard' },
+};
 
 function ArticleCard({
   article, correctionOpen, onToggleCorrection,
   correctionScore, onCorrectionScore,
   correctionReason, onCorrectionReason,
   correctionSubmitting, onSubmitCorrection,
-  onAddToMedia, onWritePitch,
+  onAddToMedia, onForceScore, onWritePitch,
 }: CardProps) {
   const [addedToMedia, setAddedToMedia] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [overrideOpen, setOverrideOpen] = useState(false);
 
   async function handleAddToMedia() {
     await onAddToMedia();
     setAddedToMedia(true);
+  }
+
+  async function handleForceScore(newTier: ScoreTier) {
+    setOverrideOpen(false);
+    onForceScore(newTier);
+    fetch('/api/sheets-write', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tab: 'Scoring Corrections',
+        rows: [[
+          article.headline,
+          article.url,
+          article.scoreTier,
+          newTier,
+          'Manual override',
+          new Date().toISOString(),
+        ]],
+      }),
+    }).catch(() => {});
   }
 
   return (
@@ -278,7 +309,45 @@ function ArticleCard({
           )}
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          <ScoreBadge tier={article.scoreTier} />
+          {/* Score badge with override dropdown */}
+          <div className="relative" onClick={e => e.stopPropagation()}>
+            <button
+              title="Override score"
+              onClick={() => setOverrideOpen(v => !v)}
+              className="flex items-center gap-1 rounded focus:outline-none"
+              style={{ opacity: 1 }}
+            >
+              <ScoreBadge tier={article.scoreTier} />
+              <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="#9ca3af" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536M9 11l6-6 3 3-6 6H9v-3z" />
+              </svg>
+            </button>
+            {overrideOpen && (
+              <div
+                className="absolute right-0 top-full mt-1 z-20 rounded-lg shadow-lg overflow-hidden"
+                style={{ border: '1px solid #E5E7EB', backgroundColor: '#fff', minWidth: '110px' }}
+              >
+                <p className="px-3 py-1.5 text-xs font-semibold" style={{ color: '#6B7280', borderBottom: '1px solid #F3F4F6' }}>
+                  Override score
+                </p>
+                {(['High', 'Medium', 'Low', 'Discard'] as ScoreTier[]).map(tier => (
+                  <button
+                    key={tier}
+                    className="w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-gray-50 transition-colors"
+                    style={{ color: tier === article.scoreTier ? '#003E52' : '#374151', fontWeight: tier === article.scoreTier ? 600 : 400 }}
+                    onClick={() => handleForceScore(tier)}
+                  >
+                    <span
+                      className="inline-block w-2 h-2 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: TIER_COLORS[tier].bg }}
+                    />
+                    {tier}
+                    {tier === article.scoreTier && <span className="ml-auto text-xs" style={{ color: '#9ca3af' }}>current</span>}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           {article.knownContact && (
             <span
               className="text-xs px-2 py-0.5 rounded-full font-semibold"
