@@ -3,11 +3,11 @@ import { Loader2, CheckCircle, Copy } from 'lucide-react';
 import type { PitchContext } from '../types';
 
 const PRIORITY_PROPERTIES = [
-  'PGA Frisco',
-  'La Costa',
-  'Amelia Island',
-  'Barton Creek',
-  'Homestead',
+  'Omni PGA Frisco',
+  'Omni La Costa',
+  'Omni Amelia Island',
+  'Omni Barton Creek',
+  'Omni Homestead',
 ];
 
 const OTHER_PROPERTIES = [
