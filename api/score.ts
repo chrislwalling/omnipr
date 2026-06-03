@@ -107,11 +107,11 @@ COMPETITOR PROPERTIES — HOMESTEAD SPECIFIC:
 The Greenbrier, Pinehurst Resort, Nemacolin, Keswick Hall, Salamander Resort & Spa
 
 OMNI GOLF COLLECTION (12 properties):
-1. PGA Frisco (Frisco, TX) — PGA of America HQ campus, Fields Ranch East & West.
-2. La Costa (Carlsbad, CA) — Gil Hanse-redesigned North Course. NCAA D1 Championships through 2028.
-3. Amelia Island (FL) — $7.4M Oak Marsh renovation by Beau Welling Design (May 2025).
-4. Barton Creek (Austin, TX) — Pair with PGA Frisco for Texas regional pitches.
-5. Homestead (Hot Springs, VA) — $150M+ renovation 2023. Cascades top 50 in America.
+1. Omni PGA Frisco (Frisco, TX) — PGA of America HQ campus, Fields Ranch East & West.
+2. Omni La Costa (Carlsbad, CA) — Gil Hanse-redesigned North Course. NCAA D1 Championships through 2028.
+3. Omni Amelia Island (FL) — $7.4M Oak Marsh renovation by Beau Welling Design (May 2025).
+4. Omni Barton Creek (Austin, TX) — Pair with Omni PGA Frisco for Texas regional pitches.
+5. Omni Homestead (Hot Springs, VA) — $150M+ renovation 2023. Cascades top 50 in America.
 6. Omni Mount Washington (Bretton Woods, NH) — Golf+ski pitches.
 7. Omni Tucson National (Tucson, AZ)
 8. Omni Interlocken (Broomfield, CO)
