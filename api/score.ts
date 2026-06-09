@@ -411,6 +411,7 @@ ${articlesWithContent}`;
 
     return res.json({ scored, counts, validationNote });
   } catch (e) {
-    return res.status(500).json({ error: (e as Error).message });
+    const msg = e instanceof Error ? e.message : (typeof e === 'string' ? e : JSON.stringify(e));
+    return res.status(500).json({ error: msg });
   }
 }
