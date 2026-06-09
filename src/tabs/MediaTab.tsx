@@ -99,7 +99,8 @@ export default function MediaTab({ onWritePitch }: Props) {
     setContacts(updated);
   }
 
-  async function handleBlur(contact: MediaContact, idx: number) {
+  async function handleBlur(idx: number, overrideContact?: MediaContact) {
+    const contact = overrideContact ?? contacts[idx];
     if (!contact.rowIndex) return;
     setSaving(idx);
     try {
@@ -132,7 +133,7 @@ export default function MediaTab({ onWritePitch }: Props) {
     const updated = { ...contact, newContact: contact.newContact === 'Yes' ? 'No' : 'Yes' };
     const allUpdated = contacts.map((c, i) => i === idx ? updated : c);
     setContacts(allUpdated);
-    await handleBlur(updated, idx);
+    await handleBlur(idx, updated);
   }
 
   return (
@@ -194,7 +195,7 @@ export default function MediaTab({ onWritePitch }: Props) {
                         style={{ borderColor: '#E5E7EB', color: '#003E52' }}
                         value={contact.name}
                         onChange={e => handleFieldChange(realIdx, 'name', e.target.value)}
-                        onBlur={() => handleBlur(contact, realIdx)}
+                        onBlur={() => handleBlur(realIdx)}
                         placeholder="Full name"
                       />
                     </td>
@@ -204,7 +205,7 @@ export default function MediaTab({ onWritePitch }: Props) {
                         style={{ borderColor: '#E5E7EB', color: '#003E52' }}
                         value={contact.outlet}
                         onChange={e => handleFieldChange(realIdx, 'outlet', e.target.value)}
-                        onBlur={() => handleBlur(contact, realIdx)}
+                        onBlur={() => handleBlur(realIdx)}
                       />
                     </td>
                     <td>
@@ -213,7 +214,7 @@ export default function MediaTab({ onWritePitch }: Props) {
                         style={{ borderColor: '#E5E7EB', color: '#003E52' }}
                         value={contact.contact}
                         onChange={e => handleFieldChange(realIdx, 'contact', e.target.value)}
-                        onBlur={() => handleBlur(contact, realIdx)}
+                        onBlur={() => handleBlur(realIdx)}
                         placeholder="email"
                       />
                     </td>
@@ -258,7 +259,7 @@ export default function MediaTab({ onWritePitch }: Props) {
                         style={{ borderColor: '#E5E7EB', color: '#003E52' }}
                         value={contact.lastPitched}
                         onChange={e => handleFieldChange(realIdx, 'lastPitched', e.target.value)}
-                        onBlur={() => handleBlur(contact, realIdx)}
+                        onBlur={() => handleBlur(realIdx)}
                         placeholder="YYYY-MM-DD"
                       />
                     </td>
