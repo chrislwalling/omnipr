@@ -81,7 +81,10 @@ export default function NewsScoringTab({ onScoringComplete }: Props) {
         });
         if (!scoreRes.ok) {
           const b = await scoreRes.json().catch(() => ({}));
-          throw new Error(b.error ?? `Scoring failed (${scoreRes.status})`);
+          const errMsg = typeof b.error === 'string'
+            ? b.error
+            : (b.error?.message ?? b.message ?? `Scoring failed (${scoreRes.status})`);
+          throw new Error(errMsg);
         }
         const scoreData = await scoreRes.json();
         if (!scoreData.scored || !Array.isArray(scoreData.scored)) {
